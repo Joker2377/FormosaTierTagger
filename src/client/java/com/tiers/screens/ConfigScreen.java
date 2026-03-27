@@ -6,9 +6,7 @@ import com.tiers.TiersClient;
 import com.tiers.misc.ConfigManager;
 import com.tiers.profile.PlayerProfile;
 import com.tiers.profile.Status;
-import com.tiers.profile.types.MCTiersProfile;
-import com.tiers.profile.types.PvPTiersProfile;
-import com.tiers.profile.types.SubtiersProfile;
+import com.tiers.profile.types.FormosaProfile;
 import com.tiers.textures.ColorControl;
 import com.tiers.textures.Icons;
 
@@ -50,15 +48,9 @@ public class ConfigScreen extends Screen {
     private Button cycleDisplayMode;
     private Button clearPlayerCache;
     private Button autoKitDetect;
-    private Button leftMCTiers;
-    private Button centerMCTiers;
-    private Button rightMCTiers;
-    private Button leftPvPTiers;
-    private Button centerPvPTiers;
-    private Button rightPvPTiers;
-    private Button leftSubtiers;
-    private Button centerSubtiers;
-    private Button rightSubtiers;
+    private Button leftFormosa;
+    private Button centerFormosa;
+    private Button rightFormosa;
     private Button activeRightMode;
     private Button activeLeftMode;
     private Button enableOwnProfile;
@@ -103,9 +95,7 @@ public class ConfigScreen extends Screen {
 
         graphics.centeredText(font, useOwnProfile ? ownProfile.getFullName() : defaultProfile.getFullName(), centerX, height - (int) (height / 4.166) - height / 54 - 12, CommonColors.WHITE);
 
-        graphics.blit(RenderPipelines.GUI_TEXTURED, MCTiersProfile.MCTIERS_IMAGE, centerX - 120 - 64, distance + 110 + 4, 0, 0, 128, 24, 128, 24);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, PvPTiersProfile.PVPTIERS_IMAGE, centerX - 12, distance + 110 + 4, 0, 0, 24, 24, 24, 24);
-        graphics.blit(RenderPipelines.GUI_TEXTURED, SubtiersProfile.SUBTIERS_IMAGE, centerX + 120 - 15, distance + 110, 0, 0, 30, 30, 30, 30);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, FormosaProfile.FORMOSA_IMAGE, centerX - 12, distance + 110 + 4, 0, 0, 24, 24, 24, 24);
 
         graphics.text(font, TiersClient.getRightIcon(), centerX + 90 + 32, distance + 75 + 9, CommonColors.WHITE);
         graphics.text(font, TiersClient.getLeftIcon(), centerX - 90 - 32 - 12, distance + 75 + 9, CommonColors.WHITE);
@@ -130,21 +120,15 @@ public class ConfigScreen extends Screen {
         cycleDisplayMode.setPosition(width / 2 - 90, distance + 50);
         autoKitDetect.setPosition(width / 2 - 90, distance + 75);
         clearPlayerCache.setPosition(width - 88 - 5, height - 20 - 5);
-        leftMCTiers.setPosition(centerX - 120 - 10 - 24, distance + 145);
-        centerMCTiers.setPosition(centerX - 120 - 10, distance + 145);
-        rightMCTiers.setPosition(centerX - 120 - 10 + 24, distance + 145);
-        leftPvPTiers.setPosition(centerX - 10 - 24, distance + 145);
-        centerPvPTiers.setPosition(centerX - 10, distance + 145);
-        rightPvPTiers.setPosition(centerX - 10 + 24, distance + 145);
-        leftSubtiers.setPosition(centerX + 120 - 10 - 24, distance + 145);
-        centerSubtiers.setPosition(centerX + 120 - 10, distance + 145);
-        rightSubtiers.setPosition(centerX + 120 - 10 + 24, distance + 145);
+        leftFormosa.setPosition(centerX - 10 - 24, distance + 145);
+        centerFormosa.setPosition(centerX - 10, distance + 145);
+        rightFormosa.setPosition(centerX - 10 + 24, distance + 145);
         activeRightMode.setPosition(centerX + 90 + 4, distance + 75);
         activeLeftMode.setPosition(centerX - 90 - 20 - 4, distance + 75);
         enableOwnProfile.setPosition(width - 20 - 5 - 88 - 4, height - 20 - 5);
 
-        activeRightMode.visible = TiersClient.positionMCTiers == TiersClient.DisplayStatus.RIGHT || TiersClient.positionPvPTiers == TiersClient.DisplayStatus.RIGHT || TiersClient.positionSubtiers == TiersClient.DisplayStatus.RIGHT;
-        activeLeftMode.visible = TiersClient.positionMCTiers == TiersClient.DisplayStatus.LEFT || TiersClient.positionPvPTiers == TiersClient.DisplayStatus.LEFT || TiersClient.positionSubtiers == TiersClient.DisplayStatus.LEFT;
+        activeRightMode.visible = TiersClient.positionFormosa == TiersClient.DisplayStatus.RIGHT;
+        activeLeftMode.visible = TiersClient.positionFormosa == TiersClient.DisplayStatus.LEFT;
     }
 
     @Override
@@ -218,7 +202,7 @@ public class ConfigScreen extends Screen {
             }).bounds(width - 20 - 5 - 88 - 4, height - 20 - 5, 20, 20).tooltip(Tooltip.create(Component.literal(useOwnProfile ? "Preview the default profile (" + defaultProfile.name + ")" : "Preview your player profile (" + ownProfile.name + ")"))).build();
         } else {
             enableOwnProfile = Button.builder(Component.literal("⚠"), (_) -> {
-                ownProfile = new PlayerProfile(Minecraft.getInstance().getGameProfile().name(), false);
+                ownProfile = new PlayerProfile(Minecraft.getInstance().getGameProfile().name(), null, false);
                 PlayerProfileQueue.putFirstInQueue(ownProfile);
 
                 onClose();
@@ -227,154 +211,34 @@ public class ConfigScreen extends Screen {
 
         clearPlayerCache = Button.builder(Component.literal("Clear cache"), (_) -> TiersClient.clearCache(false)).bounds(width - 88 - 5, height - 20 - 5, 88, 20).tooltip(Tooltip.create(Component.literal("Clear all player cache"))).build();
 
-        leftMCTiers = Button.builder(Component.literal("←"), (buttonWidget) -> {
-            TiersClient.positionMCTiers = TiersClient.DisplayStatus.LEFT;
-            if (TiersClient.positionPvPTiers == TiersClient.DisplayStatus.LEFT) {
-                TiersClient.positionPvPTiers = TiersClient.DisplayStatus.OFF;
-                leftPvPTiers.active = true;
-                centerPvPTiers.active = false;
-            }
-            if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.LEFT) {
-                TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
-                leftSubtiers.active = true;
-                centerSubtiers.active = false;
-            }
+        leftFormosa = Button.builder(Component.literal("←"), (buttonWidget) -> {
+            TiersClient.positionFormosa = TiersClient.DisplayStatus.LEFT;
             buttonWidget.active = false;
-            centerMCTiers.active = true;
-            rightMCTiers.active = true;
+            centerFormosa.active = true;
+            rightFormosa.active = true;
             ConfigManager.saveConfig();
-        }).bounds(centerX - 120 - 10 - 24, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Display MCTiers on the left"))).build();
+        }).bounds(centerX - 10 - 24, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Display Formosa on the left"))).build();
 
-        centerMCTiers = Button.builder(Component.literal("●"), (buttonWidget) -> {
-            TiersClient.positionMCTiers = TiersClient.DisplayStatus.OFF;
-            leftMCTiers.active = true;
+        centerFormosa = Button.builder(Component.literal("●"), (buttonWidget) -> {
+            TiersClient.positionFormosa = TiersClient.DisplayStatus.OFF;
+            leftFormosa.active = true;
             buttonWidget.active = false;
-            rightMCTiers.active = true;
+            rightFormosa.active = true;
             ConfigManager.saveConfig();
-        }).bounds(centerX - 120 - 10, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Disable MCTiers"))).build();
+        }).bounds(centerX - 10, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Disable Formosa"))).build();
 
-        rightMCTiers = Button.builder(Component.literal("→"), (buttonWidget) -> {
-            TiersClient.positionMCTiers = TiersClient.DisplayStatus.RIGHT;
-            if (TiersClient.positionPvPTiers == TiersClient.DisplayStatus.RIGHT) {
-                TiersClient.positionPvPTiers = TiersClient.DisplayStatus.OFF;
-                centerPvPTiers.active = false;
-                rightPvPTiers.active = true;
-            }
-            if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.RIGHT) {
-                TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
-                centerSubtiers.active = false;
-                rightSubtiers.active = true;
-            }
-            leftMCTiers.active = true;
-            centerMCTiers.active = true;
+        rightFormosa = Button.builder(Component.literal("→"), (buttonWidget) -> {
+            TiersClient.positionFormosa = TiersClient.DisplayStatus.RIGHT;
+            leftFormosa.active = true;
+            centerFormosa.active = true;
             buttonWidget.active = false;
             ConfigManager.saveConfig();
-        }).bounds(centerX - 120 - 10 + 24, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Display MCTiers on the right"))).build();
+        }).bounds(centerX - 10 + 24, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Display Formosa on the right"))).build();
 
-        leftPvPTiers = Button.builder(Component.literal("←"), (buttonWidget) -> {
-            TiersClient.positionPvPTiers = TiersClient.DisplayStatus.LEFT;
-            if (TiersClient.positionMCTiers == TiersClient.DisplayStatus.LEFT) {
-                TiersClient.positionMCTiers = TiersClient.DisplayStatus.OFF;
-                leftMCTiers.active = true;
-                centerMCTiers.active = false;
-            }
-            if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.LEFT) {
-                TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
-                leftSubtiers.active = true;
-                centerSubtiers.active = false;
-            }
-            buttonWidget.active = false;
-            centerPvPTiers.active = true;
-            rightPvPTiers.active = true;
-            ConfigManager.saveConfig();
-        }).bounds(centerX - 10 - 24, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Display PvPTiers on the left"))).build();
-
-        centerPvPTiers = Button.builder(Component.literal("●"), (buttonWidget) -> {
-            TiersClient.positionPvPTiers = TiersClient.DisplayStatus.OFF;
-            leftPvPTiers.active = true;
-            buttonWidget.active = false;
-            rightPvPTiers.active = true;
-            ConfigManager.saveConfig();
-        }).bounds(centerX - 10, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Disable PvPTiers"))).build();
-
-        rightPvPTiers = Button.builder(Component.literal("→"), (buttonWidget) -> {
-            TiersClient.positionPvPTiers = TiersClient.DisplayStatus.RIGHT;
-            if (TiersClient.positionMCTiers == TiersClient.DisplayStatus.RIGHT) {
-                TiersClient.positionMCTiers = TiersClient.DisplayStatus.OFF;
-                centerMCTiers.active = false;
-                rightMCTiers.active = true;
-            }
-            if (TiersClient.positionSubtiers == TiersClient.DisplayStatus.RIGHT) {
-                TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
-                centerSubtiers.active = false;
-                rightSubtiers.active = true;
-            }
-            leftPvPTiers.active = true;
-            centerPvPTiers.active = true;
-            buttonWidget.active = false;
-            ConfigManager.saveConfig();
-        }).bounds(centerX - 10 + 24, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Display PvPTiers on the right"))).build();
-
-        leftSubtiers = Button.builder(Component.literal("←"), (buttonWidget) -> {
-            TiersClient.positionSubtiers = TiersClient.DisplayStatus.LEFT;
-            if (TiersClient.positionMCTiers == TiersClient.DisplayStatus.LEFT) {
-                TiersClient.positionMCTiers = TiersClient.DisplayStatus.OFF;
-                leftMCTiers.active = true;
-                centerMCTiers.active = false;
-            }
-            if (TiersClient.positionPvPTiers == TiersClient.DisplayStatus.LEFT) {
-                TiersClient.positionPvPTiers = TiersClient.DisplayStatus.OFF;
-                leftPvPTiers.active = true;
-                centerPvPTiers.active = false;
-            }
-            buttonWidget.active = false;
-            centerSubtiers.active = true;
-            rightSubtiers.active = true;
-            ConfigManager.saveConfig();
-        }).bounds(centerX + 120 - 10 - 24, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Display Subtiers on the left"))).build();
-
-        centerSubtiers = Button.builder(Component.literal("●"), (buttonWidget) -> {
-            TiersClient.positionSubtiers = TiersClient.DisplayStatus.OFF;
-            leftSubtiers.active = true;
-            buttonWidget.active = false;
-            rightSubtiers.active = true;
-            ConfigManager.saveConfig();
-        }).bounds(centerX + 120 - 10, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Disable Subtiers"))).build();
-
-        rightSubtiers = Button.builder(Component.literal("→"), (buttonWidget) -> {
-            TiersClient.positionSubtiers = TiersClient.DisplayStatus.RIGHT;
-            if (TiersClient.positionMCTiers == TiersClient.DisplayStatus.RIGHT) {
-                TiersClient.positionMCTiers = TiersClient.DisplayStatus.OFF;
-                centerMCTiers.active = false;
-                rightMCTiers.active = true;
-            }
-            if (TiersClient.positionPvPTiers == TiersClient.DisplayStatus.RIGHT) {
-                TiersClient.positionPvPTiers = TiersClient.DisplayStatus.OFF;
-                centerPvPTiers.active = false;
-                rightPvPTiers.active = true;
-            }
-            leftSubtiers.active = true;
-            centerSubtiers.active = true;
-            buttonWidget.active = false;
-            ConfigManager.saveConfig();
-        }).bounds(centerX + 120 - 10 + 24, distance + 145, 20, 20).tooltip(Tooltip.create(Component.literal("Display Subtiers on the right"))).build();
-
-        switch (TiersClient.positionMCTiers) {
-            case RIGHT -> rightMCTiers.active = false;
-            case OFF -> centerMCTiers.active = false;
-            case LEFT -> leftMCTiers.active = false;
-        }
-
-        switch (TiersClient.positionPvPTiers) {
-            case RIGHT -> rightPvPTiers.active = false;
-            case OFF -> centerPvPTiers.active = false;
-            case LEFT -> leftPvPTiers.active = false;
-        }
-
-        switch (TiersClient.positionSubtiers) {
-            case RIGHT -> rightSubtiers.active = false;
-            case OFF -> centerSubtiers.active = false;
-            case LEFT -> leftSubtiers.active = false;
+        switch (TiersClient.positionFormosa) {
+            case RIGHT -> rightFormosa.active = false;
+            case OFF -> centerFormosa.active = false;
+            case LEFT -> leftFormosa.active = false;
         }
 
         activeRightMode = Button.builder(Icons.CYCLE, (_) -> {
@@ -414,8 +278,8 @@ public class ConfigScreen extends Screen {
             case MCTIERS -> useMCTiersIcons.active = false;
         }
 
-        activeRightMode.visible = TiersClient.positionMCTiers == TiersClient.DisplayStatus.RIGHT || TiersClient.positionPvPTiers == TiersClient.DisplayStatus.RIGHT || TiersClient.positionSubtiers == TiersClient.DisplayStatus.RIGHT;
-        activeLeftMode.visible = TiersClient.positionMCTiers == TiersClient.DisplayStatus.LEFT || TiersClient.positionPvPTiers == TiersClient.DisplayStatus.LEFT || TiersClient.positionSubtiers == TiersClient.DisplayStatus.LEFT;
+        activeRightMode.visible = TiersClient.positionFormosa == TiersClient.DisplayStatus.RIGHT;
+        activeLeftMode.visible = TiersClient.positionFormosa == TiersClient.DisplayStatus.LEFT;
 
         addRenderableWidget(toggleMod);
         addRenderableWidget(toggleIcons);
@@ -425,15 +289,9 @@ public class ConfigScreen extends Screen {
         addRenderableWidget(cycleDisplayMode);
         addRenderableWidget(autoKitDetect);
         addRenderableWidget(clearPlayerCache);
-        addRenderableWidget(leftMCTiers);
-        addRenderableWidget(centerMCTiers);
-        addRenderableWidget(rightMCTiers);
-        addRenderableWidget(leftPvPTiers);
-        addRenderableWidget(centerPvPTiers);
-        addRenderableWidget(rightPvPTiers);
-        addRenderableWidget(leftSubtiers);
-        addRenderableWidget(centerSubtiers);
-        addRenderableWidget(rightSubtiers);
+        addRenderableWidget(leftFormosa);
+        addRenderableWidget(centerFormosa);
+        addRenderableWidget(rightFormosa);
         addRenderableWidget(activeRightMode);
         addRenderableWidget(activeLeftMode);
         addRenderableWidget(enableOwnProfile);

@@ -36,18 +36,13 @@ public class ColorLoader implements PreparableReloadListener {
         }
 
         if (ConfigScreen.ownProfile == null) {
-            ConfigScreen.ownProfile = new PlayerProfile(Minecraft.getInstance().getGameProfile().name(), false);
+            ConfigScreen.ownProfile = new PlayerProfile(Minecraft.getInstance().getGameProfile().name(), null, false);
             PlayerProfileQueue.putFirstInQueue(ConfigScreen.ownProfile);
 
             String defaultProfileMojang = loadStringFromResources("json/defaultProfileMojang.json");
-            String defaultProfileMCTiers = loadStringFromResources("json/defaultProfileMCTiers.json");
-            String defaultProfilePvPTiers = loadStringFromResources("json/defaultProfilePvPTiers.json");
-            String defaultProfileSubtiers = loadStringFromResources("json/defaultProfileSubtiers.json");
+            String defaultProfileFormosa = loadStringFromResources("json/defaultProfileFormosa.json");
 
-            ConfigScreen.defaultProfile = new PlayerProfile(defaultProfileMojang,
-                    defaultProfileMCTiers,
-                    defaultProfilePvPTiers,
-                    defaultProfileSubtiers);
+            ConfigScreen.defaultProfile = new PlayerProfile(defaultProfileMojang, defaultProfileFormosa);
 
         } else {
             ArrayList<PlayerProfile> configProfiles = new ArrayList<>();

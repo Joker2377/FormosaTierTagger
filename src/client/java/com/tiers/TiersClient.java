@@ -62,14 +62,8 @@ public class TiersClient implements ClientModInitializer {
     public static ModesTierDisplay displayMode = ModesTierDisplay.ADAPTIVE_HIGHEST;
     public static Icons.Type activeIcons = Icons.Type.PVPTIERS;
 
-    public static DisplayStatus positionMCTiers = DisplayStatus.OFF;
-    public static Mode activeMCTiersMode = Mode.MCTIERS_VANILLA;
-
-    public static DisplayStatus positionPvPTiers = DisplayStatus.LEFT;
-    public static Mode activePvPTiersMode = Mode.PVPTIERS_CRYSTAL;
-
-    public static DisplayStatus positionSubtiers = DisplayStatus.RIGHT;
-    public static Mode activeSubtiersMode = Mode.SUBTIERS_MINECART;
+    public static DisplayStatus positionFormosa = DisplayStatus.LEFT;
+    public static Mode activeFormosaMode = Mode.FORMOSA_SWORD;
 
     public static KeyMapping autoDetectKey;
     public static KeyMapping openClosestPlayerProfile;
@@ -106,7 +100,7 @@ public class TiersClient implements ClientModInitializer {
         LOGGER.info("Tiers initialized | User agent: {}", userAgent);
     }
 
-    public static PlayerProfile addGetPlayer(String playerName, boolean priority) {
+    public static PlayerProfile addGetPlayer(String playerName, String uuid, boolean priority) {
         for (PlayerProfile playerProfile : playerProfiles) {
             if (playerProfile.name.equalsIgnoreCase(playerName) || playerProfile.inGameName.equalsIgnoreCase(playerName)) {
                 if (priority)
@@ -114,7 +108,7 @@ public class TiersClient implements ClientModInitializer {
                 return playerProfile;
             }
         }
-        PlayerProfile newProfile = new PlayerProfile(playerName, true);
+        PlayerProfile newProfile = new PlayerProfile(playerName, uuid, true);
 
         if (priority)
             PlayerProfileQueue.putFirstInQueue(newProfile);
@@ -138,12 +132,8 @@ public class TiersClient implements ClientModInitializer {
     public static void restyleAllTexts(ArrayList<PlayerProfile> playerProfiles) {
         for (PlayerProfile playerProfile : playerProfiles) {
             if (playerProfile.status == Status.READY) {
-                if (playerProfile.profileMCTiers.status == Status.READY)
-                    playerProfile.profileMCTiers.parseJson(playerProfile.profileMCTiers.originalJson);
-                if (playerProfile.profilePvPTiers.status == Status.READY)
-                    playerProfile.profilePvPTiers.parseJson(playerProfile.profilePvPTiers.originalJson);
-                if (playerProfile.profileSubtiers.status == Status.READY)
-                    playerProfile.profileSubtiers.parseJson(playerProfile.profileSubtiers.originalJson);
+                if (playerProfile.profileFormosa != null && playerProfile.profileFormosa.status == Status.READY)
+                    playerProfile.profileFormosa.parseFormosaArray(playerProfile.profileFormosa.originalJson);
             }
         }
     }
@@ -201,14 +191,8 @@ public class TiersClient implements ClientModInitializer {
             sendMessageToPlayer(Icons.colorText("Auto kit detect has been disabled due to manual gamemode changes", "red"), false);
         }
 
-        if (positionMCTiers.toString().equalsIgnoreCase("RIGHT"))
-            return Component.literal("Right (MCTiers) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cycleMCTiersMode());
-
-        if (positionPvPTiers.toString().equalsIgnoreCase("RIGHT"))
-            return Component.literal("Right (PvPTiers) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cyclePvPTiersMode());
-
-        if (positionSubtiers.toString().equalsIgnoreCase("RIGHT"))
-            return Component.literal("Right (Subtiers) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cycleSubtiersMode());
+        if (positionFormosa.toString().equalsIgnoreCase("RIGHT"))
+            return Component.literal("Right (Formosa) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cycleFormosaMode());
 
         return null;
     }
@@ -219,40 +203,22 @@ public class TiersClient implements ClientModInitializer {
             sendMessageToPlayer(Icons.colorText("Auto kit detect has been disabled due to manual gamemode changes", "red"), false);
         }
 
-        if (positionMCTiers.toString().equalsIgnoreCase("LEFT"))
-            return Component.literal("Left (MCTiers) is now displaying ").setStyle(Component.empty().withColor(CommonColors.WHITE).getStyle()).append(cycleMCTiersMode());
-
-        if (positionPvPTiers.toString().equalsIgnoreCase("LEFT"))
-            return Component.literal("Left (PvPTiers) is now displaying ").setStyle(Component.empty().withColor(CommonColors.WHITE).getStyle()).append(cyclePvPTiersMode());
-
-        if (positionSubtiers.toString().equalsIgnoreCase("LEFT"))
-            return Component.literal("Left (Subtiers) is now displaying ").setStyle(Component.empty().withColor(CommonColors.WHITE).getStyle()).append(cycleSubtiersMode());
+        if (positionFormosa.toString().equalsIgnoreCase("LEFT"))
+            return Component.literal("Left (Formosa) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cycleFormosaMode());
 
         return null;
     }
 
     public static Component getRightIcon() {
-        if (positionMCTiers.toString().equalsIgnoreCase("RIGHT"))
-            return activeMCTiersMode.getIcon();
-
-        if (positionPvPTiers.toString().equalsIgnoreCase("RIGHT"))
-            return activePvPTiersMode.getIcon();
-
-        if (positionSubtiers.toString().equalsIgnoreCase("RIGHT"))
-            return activeSubtiersMode.getIcon();
+        if (positionFormosa.toString().equalsIgnoreCase("RIGHT"))
+            return activeFormosaMode.getIcon();
 
         return Component.empty();
     }
 
     public static Component getLeftIcon() {
-        if (positionMCTiers.toString().equalsIgnoreCase("LEFT"))
-            return activeMCTiersMode.getIcon();
-
-        if (positionPvPTiers.toString().equalsIgnoreCase("LEFT"))
-            return activePvPTiersMode.getIcon();
-
-        if (positionSubtiers.toString().equalsIgnoreCase("LEFT"))
-            return activeSubtiersMode.getIcon();
+        if (positionFormosa.toString().equalsIgnoreCase("LEFT"))
+            return activeFormosaMode.getIcon();
 
         return Component.empty();
     }
@@ -348,7 +314,7 @@ public class TiersClient implements ClientModInitializer {
             sendMessageToPlayer(Icons.colorText("/tiers -help | /tiers -debug", CommonColors.YELLOW), false);
             sendMessageToPlayer(Icons.colorText("/tiers -clear", CommonColors.YELLOW), false);
         } else {
-            PlayerProfile playerProfile = addGetPlayer(playerName, true);
+            PlayerProfile playerProfile = addGetPlayer(playerName, null, true);
             if (playerProfile.isPlayerValid())
                 setScreen(new PlayerSearchResultScreen(playerProfile));
         }
@@ -393,10 +359,8 @@ public class TiersClient implements ClientModInitializer {
     }
 
     public static void changeIcons(Icons.Type iconType, boolean reload) {
-        Icons.identifierMCTiers = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT));
-        Icons.identifierPvPTiers = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT));
-        Icons.identifierMCTiersTags = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT) + "-tags");
-        Icons.identifierPvPTiersTags = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT) + "-tags");
+        Icons.identifierFormosa = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT));
+        Icons.identifierFormosaTags = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT) + "-tags");
         ColorLoader.identifier = Identifier.fromNamespaceAndPath("minecraft", "colors/" + iconType.name().toLowerCase(Locale.ROOT) + ".json");
 
         if (reload)
@@ -427,7 +391,7 @@ public class TiersClient implements ClientModInitializer {
 
         if (toggleMod && Minecraft.getInstance().level != null)
             for (AbstractClientPlayer playerEntity : Minecraft.getInstance().level.players())
-                addGetPlayer(playerEntity.getScoreboardName(), false);
+                addGetPlayer(playerEntity.getScoreboardName(), null, false);
     }
 
     public static void updateTextDisplayEntities() {
@@ -440,22 +404,10 @@ public class TiersClient implements ClientModInitializer {
                 ((DataTrackerAccessor) textDisplay.getEntityData()).invokeSet(TextDisplayAccessor.getTEXT(), textDisplay.getText(), true);
     }
 
-    public static Component cycleMCTiersMode() {
-        activeMCTiersMode = cycleEnum(activeMCTiersMode, Mode.getMCTiersValues());
+    public static Component cycleFormosaMode() {
+        activeFormosaMode = cycleEnum(activeFormosaMode, Mode.getFormosaValues());
         ConfigManager.saveConfig();
-        return activeMCTiersMode.getTextLabel();
-    }
-
-    public static Component cyclePvPTiersMode() {
-        activePvPTiersMode = cycleEnum(activePvPTiersMode, Mode.getPvPTiersValues());
-        ConfigManager.saveConfig();
-        return activePvPTiersMode.getTextLabel();
-    }
-
-    public static Component cycleSubtiersMode() {
-        activeSubtiersMode = cycleEnum(activeSubtiersMode, Mode.getSubtiersValues());
-        ConfigManager.saveConfig();
-        return activeSubtiersMode.getTextLabel();
+        return activeFormosaMode.getTextLabel();
     }
 
     public static void cycleDisplayMode() {

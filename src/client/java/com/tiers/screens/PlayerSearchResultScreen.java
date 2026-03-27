@@ -2,9 +2,7 @@ package com.tiers.screens;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.tiers.TiersClient;
-import com.tiers.profile.types.MCTiersProfile;
-import com.tiers.profile.types.PvPTiersProfile;
-import com.tiers.profile.types.SubtiersProfile;
+import com.tiers.profile.types.FormosaProfile;
 import com.tiers.textures.ColorControl;
 import com.tiers.textures.Icons;
 import com.tiers.profile.GameMode;
@@ -89,9 +87,7 @@ public class PlayerSearchResultScreen extends Screen {
 
         graphics.centeredText(font, playerProfile.getFullName(), centerX, height / 55, CommonColors.WHITE);
 
-        drawCategoryList(graphics, MCTiersProfile.MCTIERS_IMAGE, playerProfile.profileMCTiers, firstListX, listY);
-        drawCategoryList(graphics, PvPTiersProfile.PVPTIERS_IMAGE, playerProfile.profilePvPTiers, centerX, listY);
-        drawCategoryList(graphics, SubtiersProfile.SUBTIERS_IMAGE, playerProfile.profileSubtiers, thirdListX, listY);
+        drawCategoryList(graphics, FormosaProfile.FORMOSA_IMAGE, playerProfile.profileFormosa, centerX, listY);
     }
 
     private void drawCategoryList(GuiGraphicsExtractor graphics, Identifier image, SuperProfile superProfile, int x, int y) {
@@ -100,12 +96,7 @@ public class PlayerSearchResultScreen extends Screen {
             return;
         }
 
-        if (image == MCTiersProfile.MCTIERS_IMAGE)
-            graphics.blit(RenderPipelines.GUI_TEXTURED, image, x - 64, (int) (y + 2.4 * separator) + 4 - 38, 0, 0, 128, 24, 128, 24);
-        else if (image == PvPTiersProfile.PVPTIERS_IMAGE)
-            graphics.blit(RenderPipelines.GUI_TEXTURED, image, x - 12, (int) (y + 2.4 * separator) + 4 - 38, 0, 0, 24, 24, 24, 24);
-        else
-            graphics.blit(RenderPipelines.GUI_TEXTURED, image, (int) (x - 15.5), (int) (y + 2.4 * separator) - 38, 0, 0, 31, 31, 31, 31);
+        graphics.blit(RenderPipelines.GUI_TEXTURED, image, x - 12, (int) (y + 2.4 * separator) + 4 - 38, 0, 0, 24, 24, 24, 24);
 
         if (superProfile.status == Status.SEARCHING) {
             graphics.centeredText(font, "Searching...", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("green"));
@@ -123,35 +114,7 @@ public class PlayerSearchResultScreen extends Screen {
         }
 
         if (!superProfile.drawn) {
-            StringWidget regionLabel = new StringWidget(Icons.colorText("Region", "region"), font);
-            regionLabel.setPosition(x - 44, (int) (y + 2.4 * separator));
-            addRenderableWidget(regionLabel);
-
-            StringWidget overallLabel = new StringWidget(Icons.colorText("Overall", "overall"), font);
-            overallLabel.setPosition(x - 44, (int) (y + 2.4 * separator) + 16);
-            addRenderableWidget(overallLabel);
-
-            StringWidget regionIcon = new StringWidget(Icons.GLOBE, font);
-            regionIcon.setPosition(x - 64, (int) (y + 2.4 * separator + 2));
-            regionIcon.setTooltip(Tooltip.create(regionLabel.getMessage()));
-            addRenderableWidget(regionIcon);
-
-            StringWidget overallIcon = new StringWidget(Icons.OVERALL, font);
-            overallIcon.setPosition(x - 64, (int) (y + 2.4 * separator + 2) + 16);
-            overallIcon.setTooltip(Tooltip.create(overallLabel.getMessage()));
-            addRenderableWidget(overallIcon);
-
-            StringWidget region = new StringWidget(superProfile.displayedRegion, font);
-            region.setPosition(x + 52 - (superProfile.displayedRegion.getString().length() - 2) * 3, (int) (y + 2.4 * separator));
-            region.setTooltip(Tooltip.create(superProfile.regionTooltip));
-            addRenderableWidget(region);
-
-            StringWidget overall = new StringWidget(superProfile.displayedOverall, font);
-            overall.setPosition(x + 52 - (superProfile.displayedOverall.getString().length() - 2) * 3, (int) (y + 2.4 * separator) + 16);
-            overall.setTooltip(Tooltip.create(superProfile.overallTooltip));
-            addRenderableWidget(overall);
-
-            drawTierList(superProfile, x - 64, (int) (y + 2.4 * separator) + 40);
+            drawTierList(superProfile, x - 64, (int) (y + 2.4 * separator));
 
             superProfile.drawn = true;
         }
@@ -255,9 +218,7 @@ public class PlayerSearchResultScreen extends Screen {
         addRenderableWidget(dimensionsWarning);
 
         addRenderableWidget(Button.builder(Component.literal("Update"), (_) -> TiersClient.showUpdatedPlayerProfile(playerProfile, true)).bounds(5, height - 20 - 5, 50, 20).tooltip(Tooltip.create(Component.literal("Update the player profile"))).build());
-        addRenderableWidget(Button.builder(Icons.CYCLE, (_) -> playerProfile.updateTierlistProfiles(1)).bounds(5 + 54, height - 20 - 5, 20, 20).tooltip(Tooltip.create(Component.literal("Update MCTiers results"))).build());
-        addRenderableWidget(Button.builder(Icons.CYCLE, (_) -> playerProfile.updateTierlistProfiles(2)).bounds(5 + 54 + 24, height - 20 - 5, 20, 20).tooltip(Tooltip.create(Component.literal("Update PvPTiers results"))).build());
-        addRenderableWidget(Button.builder(Icons.CYCLE, (_) -> playerProfile.updateTierlistProfiles(3)).bounds(5 + 54 + 24 + 24, height - 20 - 5, 20, 20).tooltip(Tooltip.create(Component.literal("Update Subtiers results"))).build());
+        addRenderableWidget(Button.builder(Icons.CYCLE, (_) -> playerProfile.updateTierlistProfiles()).bounds(5 + 54, height - 20 - 5, 20, 20).tooltip(Tooltip.create(Component.literal("Refresh Formosa results"))).build());
 
     }
 }
