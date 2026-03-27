@@ -181,8 +181,7 @@ public class SuperProfile {
 
     private Component getOverallText() {
         String positionString = "#" + overallPosition;
-        if (!(this instanceof PvPTiersProfile) && points >= 250) return Icons.colorText(positionString, "master");
-        else if (this instanceof PvPTiersProfile && points >= 200) return Icons.colorText(positionString, "master");
+        if (points >= 250) return Icons.colorText(positionString, "master");
         else if (points >= 100) return Icons.colorText(positionString, "ace");
         else if (points >= 50) return Icons.colorText(positionString, "specialist");
         else if (points >= 20) return Icons.colorText(positionString, "cadet");
@@ -194,11 +193,8 @@ public class SuperProfile {
     private Component getOverallTooltip() {
         String overallTooltip = "Combat ";
 
-        if (this instanceof SubtiersProfile)
-            overallTooltip = "Subtiers ";
-        if (!(this instanceof PvPTiersProfile) && points >= 400) overallTooltip += "Grandmaster";
-        else if (!(this instanceof PvPTiersProfile) && points >= 250) overallTooltip += "Master";
-        else if (this instanceof PvPTiersProfile && points >= 200) overallTooltip += "Master";
+        if (points >= 400) overallTooltip += "Grandmaster";
+        else if (points >= 250) overallTooltip += "Master";
         else if (points >= 100) overallTooltip += "Ace";
         else if (points >= 50) overallTooltip += "Specialist";
         else if (points >= 20) overallTooltip += "Cadet";

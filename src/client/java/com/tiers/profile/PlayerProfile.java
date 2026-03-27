@@ -1,12 +1,12 @@
 package com.tiers.profile;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.tiers.TiersClient;
 import com.tiers.misc.Mode;
-import com.tiers.profile.types.MCTiersProfile;
-import com.tiers.profile.types.PvPTiersProfile;
-import com.tiers.profile.types.SubtiersProfile;
+import com.tiers.profile.types.FormosaProfile;
 import com.tiers.profile.types.SuperProfile;
 import com.tiers.textures.ColorControl;
 import com.tiers.textures.Icons;
@@ -17,11 +17,10 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,9 +51,7 @@ public class PlayerProfile {
     public String name = "";
     public String uuid = "";
 
-    public MCTiersProfile profileMCTiers;
-    public PvPTiersProfile profilePvPTiers;
-    public SubtiersProfile profileSubtiers;
+    public FormosaProfile profileFormosa;
 
     public Component toAppendLeft;
     public Component toAppendRight;
@@ -64,12 +61,13 @@ public class PlayerProfile {
     private int numberOfRequests;
     private final boolean regular;
 
+    private static final String FORMOSA_API_BASE = "https://formosa-tier-list-database-api.vercel.app/api/player";
     private static final String UUID_API_1 = "https://playerdb.co/api/player/minecraft/";
     private static final String UUID_API_2 = "https://api.mojang.com/users/profiles/minecraft/";
     private static final String UUID_API_3 = "https://api.minecraftservices.com/minecraft/profile/lookup/name/";
     private static boolean forceNewRequest;
 
-    public PlayerProfile(String name, boolean regular) {
+    public PlayerProfile(String name, String uuid, boolean regular) {
         if (name.contains("-force")) {
             String[] content = name.split("-");
             if (content.length == 2) {
@@ -80,12 +78,14 @@ public class PlayerProfile {
 
         this.regular = regular;
         this.name = name;
+        this.uuid = uuid != null ? uuid : "";
         inGameName = name;
 
         status = !name.matches("^[a-zA-Z0-9_]{3,16}$") ? Status.NOT_PLAYER : Status.SEARCHING;
     }
 
-    public PlayerProfile(String mojangJson, String jsonMCTiers, String jsonPvPTiers, String jsonSubtiers) {
+    // Constructor for default profile in config screen
+    public PlayerProfile(String mojangJson, String formosaJson) {
         regular = false;
 
         if (JsonParser.parseString(mojangJson).isJsonNull()) {
@@ -105,16 +105,15 @@ public class PlayerProfile {
 
         Path path = FabricLoader.getInstance().getGameDir().resolve("cache/tiers/06ec3577329945fabbdf613b1f86c8ab.png");
 
-        try (InputStream inputStream = Minecraft.getInstance().getResourceManager().getResource(Identifier.fromNamespaceAndPath("minecraft", "textures/default.png")).orElseThrow().open()) {
+        try (InputStream inputStream = Minecraft.getInstance().getResourceManager().getResource(ResourceLocation.fromNamespaceAndPath("minecraft", "textures/default.png")).orElseThrow().open()) {
             Files.createDirectories(path.getParent());
             Files.copy(inputStream, path, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ignored) {
             LOGGER.warn("Error copying default skin");
         }
 
-        profileMCTiers = new MCTiersProfile(jsonMCTiers);
-        profilePvPTiers = new PvPTiersProfile(jsonPvPTiers);
-        profileSubtiers = new SubtiersProfile(jsonSubtiers);
+        profileFormosa = new FormosaProfile();
+        profileFormosa.parseFormosaArray(formosaJson);
 
         updateAppendingText();
 
@@ -125,86 +124,192 @@ public class PlayerProfile {
         if (status != Status.SEARCHING)
             return;
 
-        if (numberOfRequests == 3) {
-            buildRequest(UUID_API_2);
-            return;
-        }
-
-        numberOfRequests++;
-
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(UUID_API_1 + name))
-                .header("User-Agent", userAgent)
-                .timeout(Duration.ofSeconds(2))
-                .GET()
-                .build();
-
-        try (HttpClient httpClient = HttpClient.newHttpClient()) {
-            httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
-                int statusCode = response.statusCode();
-
-                if (statusCode == 400 || statusCode == 500) {
-                    status = Status.NOT_EXISTING;
-                    return;
-                } else if (statusCode != 200) {
-                    buildRequest(UUID_API_2);
-                    return;
-                }
-                parseJson(response.body());
-            }).exceptionally(ignored -> {
-                CompletableFuture.delayedExecutor(100, TimeUnit.MILLISECONDS).execute(this::buildRequest);
-                return null;
-            });
+        if (!uuid.isEmpty()) {
+            buildFormosaRequestByUuid(uuid);
+        } else {
+            buildFormosaRequestByName(name);
         }
     }
 
-    public void buildRequest(String apiUrl) {
-        if (numberOfRequests == 12 || status != Status.SEARCHING) {
+    /**
+     * Primary method: Query Formosa API by UUID.
+     * Currently the UUID endpoint is not yet implemented in the API,
+     * so this will fall back to name-based query on failure.
+     */
+    private void buildFormosaRequestByUuid(String playerUuid) {
+        if (numberOfRequests >= 10 || status != Status.SEARCHING) {
             status = Status.TIMEOUTED;
             return;
         }
 
         numberOfRequests++;
 
+        String url = FORMOSA_API_BASE + "?uuid=" + playerUuid;
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(apiUrl + name))
+                .uri(URI.create(url))
                 .header("User-Agent", userAgent)
-                .timeout(Duration.ofSeconds(2))
+                .timeout(Duration.ofSeconds(4))
                 .GET()
                 .build();
 
         try (HttpClient httpClient = HttpClient.newHttpClient()) {
             httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
-                if (response.body().contains("minecraft/profile/lookup")) {
-                    status = Status.API_ISSUE;
-                    return;
-                }
+                int statusCode = response.statusCode();
 
+                if (statusCode == 200) {
+                    parseFormosaResponse(response.body());
+                } else {
+                    // UUID endpoint not available yet, fall back to name
+                    buildFormosaRequestByName(name);
+                }
+            }).exceptionally(ignored -> {
+                // Network error, fall back to name
+                buildFormosaRequestByName(name);
+                return null;
+            });
+        }
+    }
+
+    /**
+     * Fallback method: Query Formosa API by player name.
+     * Currently the primary working method.
+     */
+    private void buildFormosaRequestByName(String playerName) {
+        if (numberOfRequests >= 10 || status != Status.SEARCHING) {
+            status = Status.TIMEOUTED;
+            return;
+        }
+
+        numberOfRequests++;
+
+        String url = FORMOSA_API_BASE + "?name=" + playerName;
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("User-Agent", userAgent)
+                .timeout(Duration.ofSeconds(4))
+                .GET()
+                .build();
+
+        try (HttpClient httpClient = HttpClient.newHttpClient()) {
+            httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString()).thenAccept(response -> {
                 int statusCode = response.statusCode();
 
                 if (statusCode == 404 || statusCode == 400) {
                     status = Status.NOT_EXISTING;
                     return;
-                } else if (statusCode == 403) {
-                    CompletableFuture.delayedExecutor(50, TimeUnit.MILLISECONDS).execute(() -> buildRequest(UUID_API_3));
-                    return;
                 } else if (statusCode != 200) {
-                    long delay = switch (numberOfRequests) {
-                        case 1 -> 50;
-                        case 2, 3 -> 100;
-                        case 4, 5 -> 400;
-                        case 6, 7 -> 900;
-                        default -> 1500;
-                    };
-                    CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS).execute(() -> buildRequest(apiUrl));
+                    status = Status.API_ISSUE;
                     return;
                 }
-                parseJson(response.body());
+
+                parseFormosaResponse(response.body());
             }).exceptionally(ignored -> {
-                CompletableFuture.delayedExecutor(100, TimeUnit.MILLISECONDS).execute(() -> buildRequest(apiUrl));
+                CompletableFuture.delayedExecutor(200, TimeUnit.MILLISECONDS).execute(() -> buildFormosaRequestByName(playerName));
                 return null;
             });
         }
+    }
+
+    private void parseFormosaResponse(String json) {
+        JsonElement element = JsonParser.parseString(json);
+        if (element.isJsonNull()) {
+            status = Status.NOT_EXISTING;
+            return;
+        }
+
+        // Handle both array and non-array responses
+        JsonArray array;
+        if (element.isJsonArray()) {
+            array = element.getAsJsonArray();
+        } else {
+            status = Status.API_ISSUE;
+            return;
+        }
+
+        if (array.isEmpty()) {
+            status = Status.NOT_EXISTING;
+            return;
+        }
+
+        // Extract UUID and name from first entry
+        JsonObject first = array.get(0).getAsJsonObject();
+        if (first.has("uuid") && uuid.isEmpty()) {
+            uuid = first.get("uuid").getAsString();
+        }
+        if (first.has("player")) {
+            String apiName = first.get("player").getAsString();
+            if (!apiName.equalsIgnoreCase(name) && !apiName.equalsIgnoreCase(inGameName)) {
+                nameChanged = true;
+            }
+            name = apiName;
+        }
+
+        if (!regular)
+            savePlayerImage();
+
+        // Create and populate FormosaProfile
+        profileFormosa = new FormosaProfile();
+        profileFormosa.parseFormosaArray(json);
+
+        updateAppendingText();
+
+        status = Status.READY;
+    }
+
+    public void updateTierlistProfiles() {
+        new Thread(() -> {
+            String extra = forceNewRequest ? "&t=" + System.currentTimeMillis() : "";
+            forceNewRequest = false;
+
+            numberOfRequests = 0;
+            profileFormosa = null;
+
+            if (!uuid.isEmpty()) {
+                // Try UUID first when refreshing
+                String url = FORMOSA_API_BASE + "?uuid=" + uuid + extra;
+                HttpRequest httpRequest = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("User-Agent", userAgent)
+                        .timeout(Duration.ofSeconds(4))
+                        .GET()
+                        .build();
+
+                try (HttpClient httpClient = HttpClient.newHttpClient()) {
+                    HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                    if (response.statusCode() == 200) {
+                        profileFormosa = new FormosaProfile();
+                        profileFormosa.parseFormosaArray(response.body());
+                        updateAppendingText();
+                        return;
+                    }
+                } catch (Exception ignored) {
+                    // Fall through to name-based
+                }
+            }
+
+            // Fallback to name
+            String nameToUse = !inGameName.isEmpty() ? inGameName : name;
+            String url = FORMOSA_API_BASE + "?name=" + nameToUse + extra;
+            HttpRequest httpRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("User-Agent", userAgent)
+                    .timeout(Duration.ofSeconds(4))
+                    .GET()
+                    .build();
+
+            try (HttpClient httpClient = HttpClient.newHttpClient()) {
+                HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
+                    profileFormosa = new FormosaProfile();
+                    profileFormosa.parseFormosaArray(response.body());
+                }
+            } catch (Exception ignored) {
+                // Leave profileFormosa as null
+            }
+
+            updateAppendingText();
+            TiersClient.showUpdatedPlayerProfile(this, false);
+        }).start();
     }
 
     public void savePlayerImage() {
@@ -242,100 +347,14 @@ public class PlayerProfile {
         });
     }
 
-    private void parseJson(String json) {
-        if (JsonParser.parseString(json).isJsonNull()) {
-            status = Status.API_ISSUE;
-            return;
-        }
-
-        JsonObject jsonObject = JsonParser.parseString(json).getAsJsonObject();
-
-        if (jsonObject.has("code") && jsonObject.has("data") && jsonObject.has("success")) {
-            if (!jsonObject.get("success").getAsString().contains("true")) {
-                buildRequest(UUID_API_2);
-                return;
-            }
-            JsonObject data = jsonObject.getAsJsonObject("data");
-            if (data.has("player")) {
-                JsonObject player = data.getAsJsonObject("player");
-                if (player.has("username") && player.has("raw_id") && player.has("id")) {
-                    name = player.get("username").getAsString();
-                    uuid = player.get("raw_id").getAsString();
-                }
-            }
-        } else if (jsonObject.has("name") && jsonObject.has("id")) {
-            name = jsonObject.get("name").getAsString();
-            uuid = jsonObject.get("id").getAsString();
-        }
-
-        if (uuid.isEmpty()) {
-            status = Status.NOT_EXISTING;
-            return;
-        }
-
-        if (!regular)
-            savePlayerImage();
-
-        updateTierlistProfiles(0);
-
-        updateAppendingText();
-
-        if (!inGameName.equalsIgnoreCase(name))
-            nameChanged = true;
-
-        status = Status.READY;
-    }
-
-    public void updateTierlistProfiles(int mode) {
-        new Thread(() -> {
-            String extra = "";
-            if (forceNewRequest || mode != 0)
-                extra = "?" + System.currentTimeMillis();
-
-            forceNewRequest = false;
-
-            switch (mode) {
-                case 0:
-                    profileMCTiers = new MCTiersProfile("https://mctiers.com/api/v2/profile/", uuid, extra);
-                    profilePvPTiers = new PvPTiersProfile("https://pvptiers.com/api/profile/", uuid, extra);
-                    profileSubtiers = new SubtiersProfile("https://subtiers.net/api/profile/", uuid, extra);
-                    break;
-                case 1:
-                    profileMCTiers = new MCTiersProfile("https://mctiers.com/api/v2/profile/", uuid, extra);
-                    break;
-                case 2:
-                    profilePvPTiers = new PvPTiersProfile("https://pvptiers.com/api/profile/", uuid, extra);
-                    break;
-                case 3:
-                    profileSubtiers = new SubtiersProfile("https://subtiers.net/api/profile/", uuid, extra);
-                    break;
-            }
-
-            updateAppendingText();
-
-            if (mode != 0)
-                TiersClient.showUpdatedPlayerProfile(this, false);
-        }).start();
-    }
-
     public void updateAppendingText() {
         toAppendRight = Component.empty();
         toAppendLeft = Component.empty();
 
-        if (positionMCTiers == DisplayStatus.RIGHT)
-            toAppendRight = updateProfileNameRight(profileMCTiers, activeMCTiersMode);
-        else if (positionMCTiers == DisplayStatus.LEFT)
-            toAppendLeft = updateProfileNameLeft(profileMCTiers, activeMCTiersMode);
-
-        if (positionPvPTiers == DisplayStatus.RIGHT)
-            toAppendRight = updateProfileNameRight(profilePvPTiers, activePvPTiersMode);
-        else if (positionPvPTiers == DisplayStatus.LEFT)
-            toAppendLeft = updateProfileNameLeft(profilePvPTiers, activePvPTiersMode);
-
-        if (positionSubtiers == DisplayStatus.RIGHT)
-            toAppendRight = updateProfileNameRight(profileSubtiers, activeSubtiersMode);
-        else if (positionSubtiers == DisplayStatus.LEFT)
-            toAppendLeft = updateProfileNameLeft(profileSubtiers, activeSubtiersMode);
+        if (positionFormosa == DisplayStatus.RIGHT)
+            toAppendRight = updateProfileNameRight(profileFormosa, activeFormosaMode);
+        else if (positionFormosa == DisplayStatus.LEFT)
+            toAppendLeft = updateProfileNameLeft(profileFormosa, activeFormosaMode);
 
         updateTextDisplayEntities();
     }
@@ -420,16 +439,10 @@ public class PlayerProfile {
     }
 
     public void resetDrawnStatus() {
-        if (profileMCTiers == null || profilePvPTiers == null || profileSubtiers == null)
+        if (profileFormosa == null)
             return;
-        profileMCTiers.drawn = false;
-        profilePvPTiers.drawn = false;
-        profileSubtiers.drawn = false;
-        for (GameMode mode : profileMCTiers.gameModes)
-            mode.drawn = false;
-        for (GameMode mode : profilePvPTiers.gameModes)
-            mode.drawn = false;
-        for (GameMode mode : profileSubtiers.gameModes)
+        profileFormosa.drawn = false;
+        for (GameMode mode : profileFormosa.gameModes)
             mode.drawn = false;
     }
 
@@ -457,6 +470,7 @@ public class PlayerProfile {
         MutableComponent newText;
         ComponentContents content = original.getContents();
 
+    // TODO: Verify for 1.21.1 compatibility - PlainTextContents vs PlainTextContents.LiteralContents
         if (content instanceof PlainTextContents plain) {
             String string = plain.text();
 
@@ -518,9 +532,7 @@ public class PlayerProfile {
                 "\ndeepReplaceName=" + (deepReplaceName != null ? deepReplaceName.getString() : "null") +
                 "\nnumberOfRequests=" + numberOfRequests +
                 "\nregular=" + regular +
-                "\n\nprofileMCTiers=" + (profileMCTiers != null ? profileMCTiers : "null") +
-                "\n\nprofilePvPTiers=" + (profilePvPTiers != null ? profilePvPTiers : "null") +
-                "\n\nprofileSubtiers=" + (profileSubtiers != null ? profileSubtiers : "null") +
+                "\n\nprofileFormosa=" + (profileFormosa != null ? profileFormosa : "null") +
                 "}\n\n\n--- NEXT ---\n\n\n";
     }
 }

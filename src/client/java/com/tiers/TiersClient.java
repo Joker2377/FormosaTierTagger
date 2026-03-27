@@ -1,8 +1,5 @@
 package com.tiers;
 
-import com.mojang.blaze3d.platform.GLX;
-import com.mojang.blaze3d.systems.GpuDevice;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.brigadier.context.CommandContext;
 import com.tiers.misc.*;
 import com.tiers.mixin.client.DataTrackerAccessor;
@@ -16,9 +13,9 @@ import com.tiers.textures.Icons;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
-import net.fabricmc.fabric.api.resource.v1.pack.PackActivationType;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.KeyMapping;
@@ -28,8 +25,7 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.PackResources;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.util.CommonColors;
 import net.minecraft.world.entity.Display;
@@ -44,9 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URI;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class TiersClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(TiersClient.class);
@@ -62,14 +56,8 @@ public class TiersClient implements ClientModInitializer {
     public static ModesTierDisplay displayMode = ModesTierDisplay.ADAPTIVE_HIGHEST;
     public static Icons.Type activeIcons = Icons.Type.PVPTIERS;
 
-    public static DisplayStatus positionMCTiers = DisplayStatus.OFF;
-    public static Mode activeMCTiersMode = Mode.MCTIERS_VANILLA;
-
-    public static DisplayStatus positionPvPTiers = DisplayStatus.LEFT;
-    public static Mode activePvPTiersMode = Mode.PVPTIERS_CRYSTAL;
-
-    public static DisplayStatus positionSubtiers = DisplayStatus.RIGHT;
-    public static Mode activeSubtiersMode = Mode.SUBTIERS_MINECART;
+    public static DisplayStatus positionFormosa = DisplayStatus.LEFT;
+    public static Mode activeFormosaMode = Mode.FORMOSA_SWORD;
 
     public static KeyMapping autoDetectKey;
     public static KeyMapping openClosestPlayerProfile;
@@ -86,17 +74,17 @@ public class TiersClient implements ClientModInitializer {
         Optional<ModContainer> modContainer = FabricLoader.getInstance().getModContainer("tiers");
 
         modContainer.ifPresent(tiers -> {
-            ResourceLoader.registerBuiltinPack(Identifier.fromNamespaceAndPath("resourcepacks", "tiers-resources"), tiers, Component.literal("Resources for Tiers"), PackActivationType.ALWAYS_ENABLED);
+            ResourceManagerHelper.registerBuiltinResourcePack(ResourceLocation.fromNamespaceAndPath("resourcepacks", "tiers-resources"), tiers, ResourcePackActivationType.ALWAYS_ENABLED);
             userAgent += " v" + tiers.getMetadata().getVersion().getFriendlyString();
         });
 
-        KeyMapping.Category category = KeyMapping.Category.register(Identifier.parse("tiers"));
-        autoDetectKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("Auto Detect Kit", GLFW.GLFW_KEY_Y, category));
-        openClosestPlayerProfile = KeyMappingHelper.registerKeyMapping(new KeyMapping("Open Closest Player Profile", GLFW.GLFW_KEY_H, category));
-        cycleRightKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("Cycle Right Gamemodes", GLFW.GLFW_KEY_I, category));
-        cycleLeftKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("Cycle Left Gamemodes", GLFW.GLFW_KEY_U, category));
+        String category = "key.categories.tiers";
+        autoDetectKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.tiers.autodetect", GLFW.GLFW_KEY_Y, category));
+        openClosestPlayerProfile = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.tiers.closest_player", GLFW.GLFW_KEY_H, category));
+        cycleRightKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.tiers.cycle_right", GLFW.GLFW_KEY_I, category));
+        cycleLeftKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.tiers.cycle_left", GLFW.GLFW_KEY_U, category));
 
-        ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(Identifier.parse("tiers"), new ColorLoader());
+        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(new ColorLoader());
         ClientTickEvents.END_CLIENT_TICK.register(TiersClient::checkKeys);
         ClientTickEvents.END_CLIENT_TICK.register(minecraftClient -> {
             if (toggleAutoKitDetect)
@@ -106,7 +94,7 @@ public class TiersClient implements ClientModInitializer {
         LOGGER.info("Tiers initialized | User agent: {}", userAgent);
     }
 
-    public static PlayerProfile addGetPlayer(String playerName, boolean priority) {
+    public static PlayerProfile addGetPlayer(String playerName, String uuid, boolean priority) {
         for (PlayerProfile playerProfile : playerProfiles) {
             if (playerProfile.name.equalsIgnoreCase(playerName) || playerProfile.inGameName.equalsIgnoreCase(playerName)) {
                 if (priority)
@@ -114,7 +102,7 @@ public class TiersClient implements ClientModInitializer {
                 return playerProfile;
             }
         }
-        PlayerProfile newProfile = new PlayerProfile(playerName, true);
+        PlayerProfile newProfile = new PlayerProfile(playerName, uuid, true);
 
         if (priority)
             PlayerProfileQueue.putFirstInQueue(newProfile);
@@ -138,12 +126,8 @@ public class TiersClient implements ClientModInitializer {
     public static void restyleAllTexts(ArrayList<PlayerProfile> playerProfiles) {
         for (PlayerProfile playerProfile : playerProfiles) {
             if (playerProfile.status == Status.READY) {
-                if (playerProfile.profileMCTiers.status == Status.READY)
-                    playerProfile.profileMCTiers.parseJson(playerProfile.profileMCTiers.originalJson);
-                if (playerProfile.profilePvPTiers.status == Status.READY)
-                    playerProfile.profilePvPTiers.parseJson(playerProfile.profilePvPTiers.originalJson);
-                if (playerProfile.profileSubtiers.status == Status.READY)
-                    playerProfile.profileSubtiers.parseJson(playerProfile.profileSubtiers.originalJson);
+                if (playerProfile.profileFormosa != null && playerProfile.profileFormosa.status == Status.READY)
+                    playerProfile.profileFormosa.parseFormosaArray(playerProfile.profileFormosa.originalJson);
             }
         }
     }
@@ -154,18 +138,15 @@ public class TiersClient implements ClientModInitializer {
         if (self == null)
             return null;
 
-        try (Level level = self.level()) {
-            Player playerEntity = level.players().stream()
-                    .filter(player -> player != self)
-                    .filter(player -> self.distanceTo(player) < Minecraft.getInstance().levelRenderer.getLastViewDistance())
-                    .min(Comparator.comparingDouble(self::distanceTo))
-                    .orElse(null);
+        Level level = self.level();
+        Player playerEntity = level.players().stream()
+                .filter(player -> player != self)
+                .filter(player -> self.distanceTo(player) < Minecraft.getInstance().options.renderDistance().get() * 16)
+                .min(Comparator.comparingDouble(self::distanceTo))
+                .orElse(null);
 
-            if (playerEntity != null)
-                return playerEntity.getScoreboardName();
-        } catch (IOException ignored) {
-
-        }
+        if (playerEntity != null)
+            return playerEntity.getScoreboardName();
 
         return null;
     }
@@ -201,14 +182,8 @@ public class TiersClient implements ClientModInitializer {
             sendMessageToPlayer(Icons.colorText("Auto kit detect has been disabled due to manual gamemode changes", "red"), false);
         }
 
-        if (positionMCTiers.toString().equalsIgnoreCase("RIGHT"))
-            return Component.literal("Right (MCTiers) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cycleMCTiersMode());
-
-        if (positionPvPTiers.toString().equalsIgnoreCase("RIGHT"))
-            return Component.literal("Right (PvPTiers) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cyclePvPTiersMode());
-
-        if (positionSubtiers.toString().equalsIgnoreCase("RIGHT"))
-            return Component.literal("Right (Subtiers) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cycleSubtiersMode());
+        if (positionFormosa.toString().equalsIgnoreCase("RIGHT"))
+            return Component.literal("Right (Formosa) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cycleFormosaMode());
 
         return null;
     }
@@ -219,40 +194,22 @@ public class TiersClient implements ClientModInitializer {
             sendMessageToPlayer(Icons.colorText("Auto kit detect has been disabled due to manual gamemode changes", "red"), false);
         }
 
-        if (positionMCTiers.toString().equalsIgnoreCase("LEFT"))
-            return Component.literal("Left (MCTiers) is now displaying ").setStyle(Component.empty().withColor(CommonColors.WHITE).getStyle()).append(cycleMCTiersMode());
-
-        if (positionPvPTiers.toString().equalsIgnoreCase("LEFT"))
-            return Component.literal("Left (PvPTiers) is now displaying ").setStyle(Component.empty().withColor(CommonColors.WHITE).getStyle()).append(cyclePvPTiersMode());
-
-        if (positionSubtiers.toString().equalsIgnoreCase("LEFT"))
-            return Component.literal("Left (Subtiers) is now displaying ").setStyle(Component.empty().withColor(CommonColors.WHITE).getStyle()).append(cycleSubtiersMode());
+        if (positionFormosa.toString().equalsIgnoreCase("LEFT"))
+            return Component.literal("Left (Formosa) is now displaying ").setStyle(Style.EMPTY.withColor(CommonColors.WHITE)).append(cycleFormosaMode());
 
         return null;
     }
 
     public static Component getRightIcon() {
-        if (positionMCTiers.toString().equalsIgnoreCase("RIGHT"))
-            return activeMCTiersMode.getIcon();
-
-        if (positionPvPTiers.toString().equalsIgnoreCase("RIGHT"))
-            return activePvPTiersMode.getIcon();
-
-        if (positionSubtiers.toString().equalsIgnoreCase("RIGHT"))
-            return activeSubtiersMode.getIcon();
+        if (positionFormosa.toString().equalsIgnoreCase("RIGHT"))
+            return activeFormosaMode.getIcon();
 
         return Component.empty();
     }
 
     public static Component getLeftIcon() {
-        if (positionMCTiers.toString().equalsIgnoreCase("LEFT"))
-            return activeMCTiersMode.getIcon();
-
-        if (positionPvPTiers.toString().equalsIgnoreCase("LEFT"))
-            return activePvPTiersMode.getIcon();
-
-        if (positionSubtiers.toString().equalsIgnoreCase("LEFT"))
-            return activeSubtiersMode.getIcon();
+        if (positionFormosa.toString().equalsIgnoreCase("LEFT"))
+            return activeFormosaMode.getIcon();
 
         return Component.empty();
     }
@@ -261,9 +218,9 @@ public class TiersClient implements ClientModInitializer {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player != null) {
             if (overlay)
-                minecraft.player.sendOverlayMessage(message);
+                minecraft.player.displayClientMessage(message, true);
             else
-                minecraft.player.sendSystemMessage(message);
+                minecraft.player.displayClientMessage(message, false);
         }
     }
 
@@ -309,15 +266,15 @@ public class TiersClient implements ClientModInitializer {
         else if (playerName.equalsIgnoreCase("-config"))
             setScreen(ConfigScreen.getConfigScreen(null));
         else if (playerName.equalsIgnoreCase("-help") || playerName.equalsIgnoreCase("-debug")) {
-            sendMessageToPlayer(Icons.colorText("--- Tiers help ---", CommonColors.YELLOW), false);
-            sendMessageToPlayer(Component.literal("- General contact: ").append(Component.literal("flavio6561 on Discord").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://discordapp.com/users/715189608085716992"))))), false);
-            sendMessageToPlayer(Component.literal("- Report a bug: ").append(Component.literal("Tiers GitHub issues").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://github.com/Flavio6561/Tiers/issues"))))), false);
+            sendMessageToPlayer(Icons.colorText("--- Tiers help ---", 0xFFFFFF55), false);
+            sendMessageToPlayer(Component.literal("- General contact: ").append(Component.literal("flavio6561 on Discord").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://discordapp.com/users/715189608085716992")))), false);
+            sendMessageToPlayer(Component.literal("- Report a bug: ").append(Component.literal("Tiers GitHub issues").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/Joker2377/FormosaTierTagger/issues")))), false);
             sendMessageToPlayer(Component.literal("- It's not advisable to create tickets in PvPTiers support"), false);
-            sendMessageToPlayer(Component.literal("- ").append(Component.literal("Changelogs").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://github.com/Flavio6561/Tiers/wiki/Version-changelogs"))))), false);
-            sendMessageToPlayer(Component.literal("- ").append(Component.literal("Modrinth page").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent.OpenUrl(URI.create("https://modrinth.com/mod/tiers"))))), false);
+            sendMessageToPlayer(Component.literal("- ").append(Component.literal("Changelogs").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/Joker2377/FormosaTierTagger/wiki/Version-changelogs")))), false);
+            sendMessageToPlayer(Component.literal("- ").append(Component.literal("GitHub page").withStyle(style -> style.withUnderlined(true).withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://github.com/Joker2377/FormosaTierTagger")))), false);
 
             String[] debugInfo = getDebugInfo();
-            sendMessageToPlayer(Icons.colorText("\n" + debugInfo[0], CommonColors.SOFT_YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("\n" + debugInfo[0], 0xFFFFFF55), false);
             Minecraft.getInstance().keyboardHandler.setClipboard(debugInfo[1]);
 
             try (PrintWriter printWriter = new PrintWriter(FabricLoader.getInstance().getGameDir() + "/cache/tiers/debug.log")) {
@@ -343,12 +300,12 @@ public class TiersClient implements ClientModInitializer {
             sendMessageToPlayer(Icons.colorText("Cleared player cache", "green"), true);
         } else if (playerName.startsWith("-")) {
             sendMessageToPlayer(Icons.colorText("Not a valid command. Here's a list of valid commands:", "red"), false);
-            sendMessageToPlayer(Icons.colorText("/tiers -toggle", CommonColors.YELLOW), false);
-            sendMessageToPlayer(Icons.colorText("/tiers -config", CommonColors.YELLOW), false);
-            sendMessageToPlayer(Icons.colorText("/tiers -help | /tiers -debug", CommonColors.YELLOW), false);
-            sendMessageToPlayer(Icons.colorText("/tiers -clear", CommonColors.YELLOW), false);
+            sendMessageToPlayer(Icons.colorText("/tiers -toggle", 0xFFFFFF55), false);
+            sendMessageToPlayer(Icons.colorText("/tiers -config", 0xFFFFFF55), false);
+            sendMessageToPlayer(Icons.colorText("/tiers -help | /tiers -debug", 0xFFFFFF55), false);
+            sendMessageToPlayer(Icons.colorText("/tiers -clear", 0xFFFFFF55), false);
         } else {
-            PlayerProfile playerProfile = addGetPlayer(playerName, true);
+            PlayerProfile playerProfile = addGetPlayer(playerName, null, true);
             if (playerProfile.isPlayerValid())
                 setScreen(new PlayerSearchResultScreen(playerProfile));
         }
@@ -373,31 +330,21 @@ public class TiersClient implements ClientModInitializer {
         FabricLoader.getInstance().getModContainer("tiers").ifPresent(tiers -> version[0] = "Tiers version: " + tiers.getMetadata().getVersion().getFriendlyString());
         debugInfo[0] = version[0] + "\n";
         debugInfo[1] = debugInfo[0];
-        debugInfo[1] += "Launcher brand: " + Minecraft.getLauncherBrand() + "\n";
-        debugInfo[1] += "Game version: " + Minecraft.getInstance().getLaunchedVersion() + " | " + FabricLoader.getInstance().getRawGameVersion() + "\n";
-        debugInfo[1] += "Version type: " + Minecraft.getInstance().getVersionType() + "\n";
-        debugInfo[1] += "Instance name: " + Minecraft.getInstance().name() + "\n";
-        debugInfo[1] += "Game profile name: " + Minecraft.getInstance().getGameProfile().name() + "\n";
+        debugInfo[1] += "Game version: " + Minecraft.getInstance().getLaunchedVersion() + "\n";
+        debugInfo[1] += "Game profile name: " + Minecraft.getInstance().getUser().getName() + "\n";
         debugInfo[1] += "OS info:\n\t" + System.getProperty("os.name") + "\n\t" + System.getProperty("os.version") + "\n\t" + System.getProperty("os.arch") + "\n";
-        debugInfo[1] += "CPU info: " + GLX._getCpuInfo() + "\n";
         Runtime runtime = Runtime.getRuntime();
         debugInfo[1] += "RAM info (MB):\n\tMax: " + runtime.maxMemory() / (1024 * 1024) + "\n\tTotal: " + runtime.totalMemory() / (1024 * 1024) + "\n\tFree: " + runtime.freeMemory() / (1024 * 1024) + "\n\tIn use: " + (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024) + "\n";
-        GpuDevice gpuDevice = RenderSystem.getDevice();
-        debugInfo[1] += "GPU info:\n\t" + gpuDevice.getBackendName() + "\n\t" + gpuDevice.getImplementationInformation() + "\n\t" + gpuDevice.getRenderer() + "\n\t" + gpuDevice.getVersion() + "\n";
         debugInfo[1] += "Java version: " + System.getProperty("java.version") + "\n";
-        debugInfo[1] += "Launch args: " + Arrays.toString(FabricLoader.getInstance().getLaunchArguments(false)) + "\n";
         debugInfo[1] += "All Fabric mods: " + FabricLoader.getInstance().getAllMods() + "\n";
-        debugInfo[1] += "Resource packs: " + Minecraft.getInstance().getResourceManager().listPacks().map(PackResources::packId).collect(Collectors.joining(", ")) + "\n";
 
         return debugInfo;
     }
 
     public static void changeIcons(Icons.Type iconType, boolean reload) {
-        Icons.identifierMCTiers = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT));
-        Icons.identifierPvPTiers = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT));
-        Icons.identifierMCTiersTags = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT) + "-tags");
-        Icons.identifierPvPTiersTags = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT) + "-tags");
-        ColorLoader.identifier = Identifier.fromNamespaceAndPath("minecraft", "colors/" + iconType.name().toLowerCase(Locale.ROOT) + ".json");
+        Icons.identifierFormosa = ResourceLocation.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT));
+        Icons.identifierFormosaTags = ResourceLocation.fromNamespaceAndPath("minecraft", "gamemodes/" + iconType.name().toLowerCase(Locale.ROOT) + "-tags");
+        ColorLoader.identifier = ResourceLocation.fromNamespaceAndPath("minecraft", "colors/" + iconType.name().toLowerCase(Locale.ROOT) + ".json");
 
         if (reload)
             Minecraft.getInstance().reloadResourcePacks();
@@ -427,7 +374,7 @@ public class TiersClient implements ClientModInitializer {
 
         if (toggleMod && Minecraft.getInstance().level != null)
             for (AbstractClientPlayer playerEntity : Minecraft.getInstance().level.players())
-                addGetPlayer(playerEntity.getScoreboardName(), false);
+                addGetPlayer(playerEntity.getScoreboardName(), null, false);
     }
 
     public static void updateTextDisplayEntities() {
@@ -437,25 +384,13 @@ public class TiersClient implements ClientModInitializer {
 
         for (Entity entity : minecraftClient.level.entitiesForRendering())
             if (entity instanceof Display.TextDisplay textDisplay)
-                ((DataTrackerAccessor) textDisplay.getEntityData()).invokeSet(TextDisplayAccessor.getTEXT(), textDisplay.getText(), true);
+                ((DataTrackerAccessor) textDisplay.getEntityData()).invokeSet(TextDisplayAccessor.getTEXT(), textDisplay.getText());
     }
 
-    public static Component cycleMCTiersMode() {
-        activeMCTiersMode = cycleEnum(activeMCTiersMode, Mode.getMCTiersValues());
+    public static Component cycleFormosaMode() {
+        activeFormosaMode = cycleEnum(activeFormosaMode, Mode.getFormosaValues());
         ConfigManager.saveConfig();
-        return activeMCTiersMode.getTextLabel();
-    }
-
-    public static Component cyclePvPTiersMode() {
-        activePvPTiersMode = cycleEnum(activePvPTiersMode, Mode.getPvPTiersValues());
-        ConfigManager.saveConfig();
-        return activePvPTiersMode.getTextLabel();
-    }
-
-    public static Component cycleSubtiersMode() {
-        activeSubtiersMode = cycleEnum(activeSubtiersMode, Mode.getSubtiersValues());
-        ConfigManager.saveConfig();
-        return activeSubtiersMode.getTextLabel();
+        return activeFormosaMode.getTextLabel();
     }
 
     public static void cycleDisplayMode() {

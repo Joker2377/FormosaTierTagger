@@ -84,16 +84,42 @@ public class GameMode {
         status = Status.READY;
     }
 
+    public void parseFormosaTier(String tierRank, String subtier, int tierNum) {
+        tier = String.valueOf(tierNum);
+        displayedTierUnformatted = tierRank;
+
+        displayedTier = Component.literal(displayedTierUnformatted).setStyle(Style.EMPTY.withColor(getTierColor(displayedTierUnformatted)));
+
+        String tooltipStr = "";
+        if (subtier.equalsIgnoreCase("H"))
+            tooltipStr = "High ";
+        else if (subtier.equalsIgnoreCase("M"))
+            tooltipStr = "Mid ";
+        else
+            tooltipStr = "Low ";
+        tooltipStr += "Tier " + tierNum;
+        tooltipStr += "\n\nPoints: " + getTierPoints(false);
+
+        tierTooltip = Component.literal(tooltipStr).setStyle(Style.EMPTY.withColor(getTierColor(displayedTierUnformatted)));
+
+        hasPeak = false;
+        status = Status.READY;
+    }
+
     private Component getTierTooltip() {
         String tierTooltipString = "";
         if (displayedTierUnformatted.contains("R"))
             tierTooltipString += "Retired ";
 
-        if (displayedTierUnformatted.contains("H"))
+        if (displayedTierUnformatted.contains("HT"))
             tierTooltipString += "High ";
+        else if (displayedTierUnformatted.contains("MT"))
+            tierTooltipString += "Mid ";
         else tierTooltipString += "Low ";
 
-        tierTooltipString += "Tier " + tier + "\n\nPoints: " + getTierPoints(false) + "\nAttained: " + LocalDateTime.ofInstant(Instant.ofEpochSecond(Long.parseLong(attained)), ZoneId.systemDefault()).toString().replace("T", " ");
+        tierTooltipString += "Tier " + tier + "\n\nPoints: " + getTierPoints(false);
+        if (attained != null)
+            tierTooltipString += "\nAttained: " + LocalDateTime.ofInstant(Instant.ofEpochSecond(Long.parseLong(attained)), ZoneId.systemDefault()).toString().replace("T", " ");
 
         return Component.literal(tierTooltipString).setStyle(Style.EMPTY.withColor(getTierColor(displayedTierUnformatted)));
     }
@@ -120,26 +146,19 @@ public class GameMode {
         tier = tier.replace("R", "");
 
         if (tier.equalsIgnoreCase("HT1")) return 60;
-        else if (tier.equalsIgnoreCase("LT1")) {
-            if (gamemode.toString().contains("PVPTIERS"))
-                return 44;
-            else
-                return 45;
-        } else if (tier.equalsIgnoreCase("HT2")) {
-            if (gamemode.toString().contains("PVPTIERS"))
-                return 28;
-            else
-                return 30;
-        } else if (tier.equalsIgnoreCase("LT2")) {
-            if (gamemode.toString().contains("PVPTIERS"))
-                return 16;
-            else
-                return 20;
-        } else if (tier.equalsIgnoreCase("HT3")) return 10;
+        else if (tier.equalsIgnoreCase("MT1")) return 52;
+        else if (tier.equalsIgnoreCase("LT1")) return 45;
+        else if (tier.equalsIgnoreCase("HT2")) return 30;
+        else if (tier.equalsIgnoreCase("MT2")) return 25;
+        else if (tier.equalsIgnoreCase("LT2")) return 20;
+        else if (tier.equalsIgnoreCase("HT3")) return 10;
+        else if (tier.equalsIgnoreCase("MT3")) return 8;
         else if (tier.equalsIgnoreCase("LT3")) return 6;
         else if (tier.equalsIgnoreCase("HT4")) return 4;
+        else if (tier.equalsIgnoreCase("MT4")) return 3;
         else if (tier.equalsIgnoreCase("LT4")) return 3;
         else if (tier.equalsIgnoreCase("HT5")) return 2;
+        else if (tier.equalsIgnoreCase("MT5")) return 1;
         else if (tier.equalsIgnoreCase("LT5")) return 1;
         return 0;
     }

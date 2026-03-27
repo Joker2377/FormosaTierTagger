@@ -15,6 +15,6 @@ public abstract class ModifyNametagsClientMixin {
 
     @ModifyReturnValue(at = @At("RETURN"), method = "getDisplayName")
     private Component modifyDisplayName(Component original) {
-        return TiersClient.toggleMod ? TiersClient.addGetPlayer(getScoreboardName(), false).getFullName(original) : original;
+        return TiersClient.toggleMod ? TiersClient.addGetPlayer(getScoreboardName(), null, false).getFullName(original) : original;
     }
 }
