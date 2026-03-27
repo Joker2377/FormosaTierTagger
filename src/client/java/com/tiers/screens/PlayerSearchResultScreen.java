@@ -21,7 +21,7 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.CommonColors;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -44,7 +44,7 @@ public class PlayerSearchResultScreen extends Screen {
     }
 
     @Override
-    public void render(@NonNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!playerProfile.isPlayerValid()) {
             onClose();
             return;
@@ -195,7 +195,7 @@ public class PlayerSearchResultScreen extends Screen {
             return;
 
         try (FileInputStream fileInputStream = new FileInputStream(FabricLoader.getInstance().getGameDir().resolve("cache/tiers/players/" + playerProfile.uuid + ".png").toFile())) {
-            Minecraft.getInstance().getTextureManager().register(playerAvatarTexture, new DynamicTexture(String::new, NativeImage.read(fileInputStream)));
+            Minecraft.getInstance().getTextureManager().register(playerAvatarTexture, new DynamicTexture(NativeImage.read(fileInputStream)));
             imageReady = true;
         } catch (IOException ignored) {
             TiersClient.LOGGER.warn("Error loading player skin");

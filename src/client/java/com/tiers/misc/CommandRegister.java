@@ -24,8 +24,8 @@ public class CommandRegister {
             return suggestionsBuilder.buildFuture();
 
         for (PlayerInfo playerInfo : minecraft.getConnection().getOnlinePlayers())
-            if (SharedSuggestionProvider.matchesSubStr(suggestionsBuilder.getRemaining().toLowerCase(Locale.ROOT), playerInfo.getProfile().name().toLowerCase(Locale.ROOT)) && playerInfo.getProfile().name().length() > 2)
-                suggestionsBuilder.suggest(playerInfo.getProfile().name(), () -> "Search tiers for " + playerInfo.getProfile().name());
+            if (SharedSuggestionProvider.matchesSubStr(suggestionsBuilder.getRemaining().toLowerCase(Locale.ROOT), playerInfo.getProfile().getName().toLowerCase(Locale.ROOT)) && playerInfo.getProfile().getName().length() > 2)
+                suggestionsBuilder.suggest(playerInfo.getProfile().getName(), () -> "Search tiers for " + playerInfo.getProfile().getName());
 
         if (SharedSuggestionProvider.matchesSubStr(suggestionsBuilder.getRemaining().toLowerCase(Locale.ROOT), "-config"))
             suggestionsBuilder.suggest("-config", () -> "Open Tiers config screen");

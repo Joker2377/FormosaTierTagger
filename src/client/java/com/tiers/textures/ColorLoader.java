@@ -11,7 +11,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -30,7 +30,7 @@ public class ColorLoader implements IdentifiableResourceReloadListener {
     }
 
     @Override
-    public @NonNull CompletableFuture<Void> reload(@NonNull PreparationBarrier preparationBarrier, @NonNull ResourceManager resourceManager, @NonNull Executor backgroundExecutor, @NonNull Executor gameExecutor) {
+    public @NotNull CompletableFuture<Void> reload(@NotNull PreparationBarrier preparationBarrier, @NotNull ResourceManager resourceManager, @NotNull Executor backgroundExecutor, @NotNull Executor gameExecutor) {
         if (resourceManager.getResource(identifier).isPresent()) {
             try {
                 ColorControl.updateColors(GsonHelper.fromJson(new Gson(), new InputStreamReader(resourceManager.getResource(identifier).get().open(), StandardCharsets.UTF_8), JsonObject.class));
@@ -42,7 +42,7 @@ public class ColorLoader implements IdentifiableResourceReloadListener {
         }
 
         if (ConfigScreen.ownProfile == null) {
-            ConfigScreen.ownProfile = new PlayerProfile(Minecraft.getInstance().getGameProfile().name(), null, false);
+            ConfigScreen.ownProfile = new PlayerProfile(Minecraft.getInstance().getUser().getName(), null, false);
             PlayerProfileQueue.putFirstInQueue(ConfigScreen.ownProfile);
 
             String defaultProfileMojang = loadStringFromResources("json/defaultProfileMojang.json");

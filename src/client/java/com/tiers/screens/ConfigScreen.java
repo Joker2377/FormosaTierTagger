@@ -21,7 +21,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
-import org.jspecify.annotations.NonNull;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.FileInputStream;
@@ -76,7 +76,7 @@ public class ConfigScreen extends Screen {
 
 
     @Override
-    public void render(@NonNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         centerX = width / 2;
         distance = height / 14;
 
@@ -200,7 +200,7 @@ public class ConfigScreen extends Screen {
             }).bounds(width - 20 - 5 - 88 - 4, height - 20 - 5, 20, 20).tooltip(Tooltip.create(Component.literal(useOwnProfile ? "Preview the default profile (" + defaultProfile.name + ")" : "Preview your player profile (" + ownProfile.name + ")"))).build();
         } else {
             enableOwnProfile = Button.builder(Component.literal("⚠"), (_) -> {
-                ownProfile = new PlayerProfile(Minecraft.getInstance().getGameProfile().name(), null, false);
+                ownProfile = new PlayerProfile(Minecraft.getInstance().getUser().getName(), null, false);
                 PlayerProfileQueue.putFirstInQueue(ownProfile);
 
                 onClose();
@@ -315,7 +315,7 @@ public class ConfigScreen extends Screen {
             return;
 
         try (FileInputStream fileInputStream = new FileInputStream(FabricLoader.getInstance().getGameDir().resolve("cache/tiers/" + (useOwnProfile ? ownProfile.uuid : defaultProfile.uuid) + ".png").toFile())) {
-            Minecraft.getInstance().getTextureManager().register(playerAvatarTexture, new DynamicTexture(String::new, NativeImage.read(fileInputStream)));
+            Minecraft.getInstance().getTextureManager().register(playerAvatarTexture, new DynamicTexture(NativeImage.read(fileInputStream)));
             imageReady = true;
         } catch (IOException ignored) {
             TiersClient.LOGGER.warn("Error loading player skin");

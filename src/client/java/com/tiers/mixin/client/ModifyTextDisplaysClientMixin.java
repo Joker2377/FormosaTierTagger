@@ -10,9 +10,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-@Mixin(DisplayRenderer.TextDisplayRenderer.class)
+// TODO: Verify class target for 1.21.1 - DisplayRenderer.TextDisplayRenderer may not exist
+@Mixin(value = DisplayRenderer.TextDisplayRenderer.class, remap = false)
 public abstract class ModifyTextDisplaysClientMixin {
-    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Font;split(Lnet/minecraft/network/chat/FormattedText;I)Ljava/util/List;"), method = "splitLines")
+    @ModifyArg(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Font;split(Lnet/minecraft/network/chat/FormattedText;I)Ljava/util/List;"), method = "splitLines", require = 0)
     public FormattedText modifyLines(FormattedText original) {
         if (!TiersClient.toggleMod)
             return original;
