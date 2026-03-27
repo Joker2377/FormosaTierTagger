@@ -17,7 +17,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 
 import javax.imageio.ImageIO;
@@ -105,7 +105,7 @@ public class PlayerProfile {
 
         Path path = FabricLoader.getInstance().getGameDir().resolve("cache/tiers/06ec3577329945fabbdf613b1f86c8ab.png");
 
-        try (InputStream inputStream = Minecraft.getInstance().getResourceManager().getResource(Identifier.fromNamespaceAndPath("minecraft", "textures/default.png")).orElseThrow().open()) {
+        try (InputStream inputStream = Minecraft.getInstance().getResourceManager().getResource(ResourceLocation.fromNamespaceAndPath("minecraft", "textures/default.png")).orElseThrow().open()) {
             Files.createDirectories(path.getParent());
             Files.copy(inputStream, path, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException ignored) {
@@ -470,6 +470,7 @@ public class PlayerProfile {
         MutableComponent newText;
         ComponentContents content = original.getContents();
 
+    // TODO: Verify for 1.21.1 compatibility - PlainTextContents vs PlainTextContents.LiteralContents
         if (content instanceof PlainTextContents plain) {
             String string = plain.text();
 

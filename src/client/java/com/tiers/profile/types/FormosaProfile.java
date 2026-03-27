@@ -7,12 +7,12 @@ import com.google.gson.JsonParser;
 import com.tiers.misc.Mode;
 import com.tiers.profile.GameMode;
 import com.tiers.profile.Status;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import static com.tiers.TiersClient.updateAllTags;
 
 public class FormosaProfile extends SuperProfile {
-    public static final Identifier FORMOSA_IMAGE = Identifier.fromNamespaceAndPath("minecraft", "textures/formosa_logo.png");
+    public static final ResourceLocation FORMOSA_IMAGE = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/formosa_logo.png");
 
     public FormosaProfile() {
         super();

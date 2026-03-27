@@ -2,9 +2,7 @@ package com.tiers.misc;
 
 import com.tiers.textures.Icons;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.*;
 import net.minecraft.util.CommonColors;
 
 import java.awt.*;
@@ -36,11 +34,11 @@ public enum Mode {
     }
 
     public Component getIcon() {
-        return Component.literal(unicode).setStyle(Style.EMPTY.withFont(new FontDescription.Resource(Icons.identifierFormosa)).withColor(CommonColors.WHITE));
+        return Component.literal(unicode).setStyle(Style.EMPTY.withFont(Icons.identifierFormosa).withColor(CommonColors.WHITE));
     }
 
     public Component getIconTag() {
-        return Component.literal(unicode).setStyle(Style.EMPTY.withFont(new FontDescription.Resource(Icons.identifierFormosaTags)).withColor(CommonColors.WHITE));
+        return Component.literal(unicode).setStyle(Style.EMPTY.withFont(Icons.identifierFormosaTags).withColor(CommonColors.WHITE));
     }
 
     public Component getTextLabel() {

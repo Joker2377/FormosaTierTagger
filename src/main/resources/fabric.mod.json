@@ -2,23 +2,22 @@
   "schemaVersion": 1,
   "id": "tiers",
   "version": "${version}",
-  "name": "Tiers",
-  "description": "Official Tier Tagger of PvPTiers. Supports other Tierlists: MCTiers, Subtiers",
+  "name": "Formosa Tier Tagger",
+  "description": "Tier Tagger for the Formosa Tier List",
   "authors": [
-    "Flavio6561"
+    "Flavio6561",
+    "Joker2377"
   ],
   "license": "GPL-3.0",
   "contact": {
-    "issues": "https://github.com/Flavio6561/Tiers/issues",
-    "homepage": "https://github.com/Flavio6561/Tiers"
+    "issues": "https://github.com/Joker2377/FormosaTierTagger/issues",
+    "homepage": "https://github.com/Joker2377/FormosaTierTagger"
   },
   "custom": {
     "modmenu": {
       "links": {
-        "GitHub": "https://github.com/Flavio6561/Tiers",
-        "Modrinth page": "https://modrinth.com/mod/tiers",
-        "Changelogs": "https://github.com/Flavio6561/Tiers/wiki/Version-changelogs",
-        "GitHub Issues": "https://github.com/Flavio6561/Tiers/issues"
+        "GitHub": "https://github.com/Joker2377/FormosaTierTagger",
+        "GitHub Issues": "https://github.com/Joker2377/FormosaTierTagger/issues"
       }
     }
   },
@@ -39,8 +38,8 @@
   ],
   "depends": {
     "fabricloader": ">=0.16.5",
-    "minecraft": ["${minecraft_version}"],
-    "java": ">=25",
+    "minecraft": ">=1.21.1",
+    "java": ">=21",
     "fabric-api": "*"
   }
 }

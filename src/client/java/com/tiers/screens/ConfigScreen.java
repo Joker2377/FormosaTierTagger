@@ -12,17 +12,15 @@ import com.tiers.textures.Icons;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.network.chat.FontDescription;
 import net.minecraft.util.*;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.jspecify.annotations.NonNull;
 
 import java.awt.*;
@@ -37,7 +35,7 @@ public class ConfigScreen extends Screen {
     private String autoDetectKitBoundKey;
     private String cycleRightBoundKey;
     private String cycleLeftBoundKey;
-    private final Identifier playerAvatarTexture = Identifier.parse("");
+    private final ResourceLocation playerAvatarTexture = ResourceLocation.parse("");
     private boolean imageReady;
 
     private Button toggleMod;
@@ -78,36 +76,36 @@ public class ConfigScreen extends Screen {
 
 
     @Override
-    public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+    public void render(@NonNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         centerX = width / 2;
         distance = height / 14;
 
-        super.extractRenderState(graphics, mouseX, mouseY, a);
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
 
-        graphics.centeredText(font, Component.literal("Tiers config"), centerX, height / 50, CommonColors.WHITE);
+        guiGraphics.drawCenteredString(font, Component.literal("Tiers config"), centerX, height / 50, CommonColors.WHITE);
 
-        drawIconShowcase(graphics);
+        drawIconShowcase(guiGraphics);
 
         if (!useOwnProfile)
-            graphics.blit(RenderPipelines.GUI_TEXTURED, playerAvatarTexture, centerX - height / 10 / 2, height - (int) (height / 4.166) - height / 54, 0, 0, height / 10, (int) (height / 4.166), height / 10, (int) (height / 4.166));
+            guiGraphics.blit(playerAvatarTexture, centerX - height / 10 / 2, height - (int) (height / 4.166) - height / 54, 0, 0, height / 10, (int) (height / 4.166), height / 10, (int) (height / 4.166));
         else
-            drawPlayerAvatar(graphics, centerX, height - (int) (height / 4.166) - height / 54);
+            drawPlayerAvatar(guiGraphics, centerX, height - (int) (height / 4.166) - height / 54);
 
-        graphics.centeredText(font, useOwnProfile ? ownProfile.getFullName() : defaultProfile.getFullName(), centerX, height - (int) (height / 4.166) - height / 54 - 12, CommonColors.WHITE);
+        guiGraphics.drawCenteredString(font, useOwnProfile ? ownProfile.getFullName() : defaultProfile.getFullName(), centerX, height - (int) (height / 4.166) - height / 54 - 12, CommonColors.WHITE);
 
-        graphics.blit(RenderPipelines.GUI_TEXTURED, FormosaProfile.FORMOSA_IMAGE, centerX - 12, distance + 110 + 4, 0, 0, 24, 24, 24, 24);
+        guiGraphics.blit(FormosaProfile.FORMOSA_IMAGE, centerX - 12, distance + 110 + 4, 0, 0, 24, 24, 24, 24);
 
-        graphics.text(font, TiersClient.getRightIcon(), centerX + 90 + 32, distance + 75 + 9, CommonColors.WHITE);
-        graphics.text(font, TiersClient.getLeftIcon(), centerX - 90 - 32 - 12, distance + 75 + 9, CommonColors.WHITE);
+        guiGraphics.drawString(font, TiersClient.getRightIcon(), centerX + 90 + 32, distance + 75 + 9, CommonColors.WHITE);
+        guiGraphics.drawString(font, TiersClient.getLeftIcon(), centerX - 90 - 32 - 12, distance + 75 + 9, CommonColors.WHITE);
 
         checkUpdates();
     }
 
-    private void drawIconShowcase(GuiGraphicsExtractor graphics) {
+    private void drawIconShowcase(GuiGraphics guiGraphics) {
         for (int i = 0; i < 8; i++) {
-            graphics.centeredText(font, Component.literal(String.valueOf((char) (0xF000 + i))).setStyle(Style.EMPTY.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath("minecraft", "gamemodes/classic-medium")))), 34 + 14 * i, 13, CommonColors.WHITE);
-            graphics.centeredText(font, Component.literal(String.valueOf((char) (0xF000 + i))).setStyle(Style.EMPTY.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath("minecraft", "gamemodes/pvptiers-medium")))), 34 + 14 * i, 38, CommonColors.WHITE);
-            graphics.centeredText(font, Component.literal(String.valueOf((char) (0xF000 + i))).setStyle(Style.EMPTY.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath("minecraft", "gamemodes/mctiers-medium")))), 34 + 14 * i, 63, CommonColors.WHITE);
+            guiGraphics.drawCenteredString(font, Component.literal(String.valueOf((char) (0xF000 + i))).setStyle(Style.EMPTY.withFont(ResourceLocation.fromNamespaceAndPath("minecraft", "gamemodes/classic-medium"))), 34 + 14 * i, 13, CommonColors.WHITE);
+            guiGraphics.drawCenteredString(font, Component.literal(String.valueOf((char) (0xF000 + i))).setStyle(Style.EMPTY.withFont(ResourceLocation.fromNamespaceAndPath("minecraft", "gamemodes/pvptiers-medium"))), 34 + 14 * i, 38, CommonColors.WHITE);
+            guiGraphics.drawCenteredString(font, Component.literal(String.valueOf((char) (0xF000 + i))).setStyle(Style.EMPTY.withFont(ResourceLocation.fromNamespaceAndPath("minecraft", "gamemodes/mctiers-medium"))), 34 + 14 * i, 63, CommonColors.WHITE);
         }
     }
 
@@ -300,16 +298,16 @@ public class ConfigScreen extends Screen {
         addRenderableWidget(useMCTiersIcons);
     }
 
-    private void drawPlayerAvatar(GuiGraphicsExtractor graphics, int x, int y) {
+    private void drawPlayerAvatar(GuiGraphics guiGraphics, int x, int y) {
         if (imageReady) {
             if (ownProfile.imageSaved == 1 || ownProfile.imageSaved == 2)
-                graphics.blit(RenderPipelines.GUI_TEXTURED, playerAvatarTexture, x - height / 10 / 2, y, 0, 0, height / 10, (int) (height / 4.166), height / 10, (int) (height / 4.166));
+                guiGraphics.blit(playerAvatarTexture, x - height / 10 / 2, y, 0, 0, height / 10, (int) (height / 4.166), height / 10, (int) (height / 4.166));
             else if (ownProfile.imageSaved < 6 && ownProfile.imageSaved > 2)
-                graphics.blit(RenderPipelines.GUI_TEXTURED, playerAvatarTexture, x - height / 7 / 2, y, 0, 0, height / 7, (int) (height / 4.145), height / 7, (int) (height / 4.145));
+                guiGraphics.blit(playerAvatarTexture, x - height / 7 / 2, y, 0, 0, height / 7, (int) (height / 4.145), height / 7, (int) (height / 4.145));
         } else if (ownProfile.imageSaved != 0) {
             loadPlayerAvatar();
         } else if (ownProfile.numberOfImageRequests == 6)
-            graphics.centeredText(font, Component.literal(ownProfile.name + "'s skin failed to load. Restart game to retry"), x, y + 50, ColorControl.getColorMinecraftStandard("red"));
+            guiGraphics.drawCenteredString(font, Component.literal(ownProfile.name + "'s skin failed to load. Restart game to retry"), x, y + 50, ColorControl.getColorMinecraftStandard("red"));
     }
 
     private void loadPlayerAvatar() {

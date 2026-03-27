@@ -11,16 +11,15 @@ import com.tiers.profile.Status;
 import com.tiers.profile.types.SuperProfile;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.CommonColors;
 import org.jspecify.annotations.NonNull;
 
@@ -29,7 +28,7 @@ import java.io.IOException;
 
 public class PlayerSearchResultScreen extends Screen {
     private final PlayerProfile playerProfile;
-    private final Identifier playerAvatarTexture = Identifier.parse("");
+    private final ResourceLocation playerAvatarTexture = ResourceLocation.parse("");
 
     Button dimensionsWarning;
 
@@ -45,7 +44,7 @@ public class PlayerSearchResultScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(@NonNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+    public void render(@NonNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!playerProfile.isPlayerValid()) {
             onClose();
             return;
@@ -65,7 +64,7 @@ public class PlayerSearchResultScreen extends Screen {
         int thirdListX = (int) (centerX + width / 3.5) + 25;
         int avatarY = height / 55 + 12;
 
-        super.extractRenderState(graphics, mouseX, mouseY, a);
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
 
         dimensionsWarning.visible = small;
         if (tooSmall) {
@@ -74,42 +73,42 @@ public class PlayerSearchResultScreen extends Screen {
         }
 
         if (playerProfile.status == Status.SEARCHING) {
-            graphics.centeredText(font, Component.literal("Searching for " + playerProfile.name + "..."), centerX, listY, ColorControl.getColorMinecraftStandard("green"));
+            guiGraphics.drawCenteredString(font, Component.literal("Searching for " + playerProfile.name + "..."), centerX, listY, ColorControl.getColorMinecraftStandard("green"));
             return;
         }
 
         if (playerProfile.numberOfImageRequests == 0)
             playerProfile.savePlayerImage();
 
-        drawPlayerAvatar(graphics, centerX, avatarY);
+        drawPlayerAvatar(guiGraphics, centerX, avatarY);
         if (!imageReady)
-            graphics.centeredText(font, Component.literal("Loading " + playerProfile.name + "'s skin"), centerX, avatarY + 50, ColorControl.getColorMinecraftStandard("green"));
+            guiGraphics.drawCenteredString(font, Component.literal("Loading " + playerProfile.name + "'s skin"), centerX, avatarY + 50, ColorControl.getColorMinecraftStandard("green"));
 
-        graphics.centeredText(font, playerProfile.getFullName(), centerX, height / 55, CommonColors.WHITE);
+        guiGraphics.drawCenteredString(font, playerProfile.getFullName(), centerX, height / 55, CommonColors.WHITE);
 
-        drawCategoryList(graphics, FormosaProfile.FORMOSA_IMAGE, playerProfile.profileFormosa, centerX, listY);
+        drawCategoryList(guiGraphics, FormosaProfile.FORMOSA_IMAGE, playerProfile.profileFormosa, centerX, listY);
     }
 
-    private void drawCategoryList(GuiGraphicsExtractor graphics, Identifier image, SuperProfile superProfile, int x, int y) {
+    private void drawCategoryList(GuiGraphics guiGraphics, ResourceLocation image, SuperProfile superProfile, int x, int y) {
         if (superProfile == null) {
-            graphics.centeredText(font, "Loading from API...", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("green"));
+            guiGraphics.drawCenteredString(font, "Loading from API...", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("green"));
             return;
         }
 
-        graphics.blit(RenderPipelines.GUI_TEXTURED, image, x - 12, (int) (y + 2.4 * separator) + 4 - 38, 0, 0, 24, 24, 24, 24);
+        guiGraphics.blit(image, x - 12, (int) (y + 2.4 * separator) + 4 - 38, 0, 0, 24, 24, 24, 24);
 
         if (superProfile.status == Status.SEARCHING) {
-            graphics.centeredText(font, "Searching...", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("green"));
+            guiGraphics.drawCenteredString(font, "Searching...", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("green"));
             return;
         } else if (superProfile.status == Status.NOT_EXISTING) {
-            graphics.centeredText(font, "Unranked", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
+            guiGraphics.drawCenteredString(font, "Unranked", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
             return;
         } else if (superProfile.status == Status.TIMEOUTED) {
-            graphics.centeredText(font, "Search timeouted. Clear cache and retry", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
+            guiGraphics.drawCenteredString(font, "Search timeouted. Clear cache and retry", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
             return;
         } else if (superProfile.status == Status.API_ISSUE) {
-            graphics.centeredText(font, "Search failed: API issue", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
-            graphics.centeredText(font, "Update Tiers or retry in a while", x, (int) (y + 2.8 * separator + 15), ColorControl.getColorMinecraftStandard("red"));
+            guiGraphics.drawCenteredString(font, "Search failed: API issue", x, (int) (y + 2.8 * separator), ColorControl.getColorMinecraftStandard("red"));
+            guiGraphics.drawCenteredString(font, "Update Tiers or retry in a while", x, (int) (y + 2.8 * separator + 15), ColorControl.getColorMinecraftStandard("red"));
             return;
         }
 
@@ -179,16 +178,16 @@ public class PlayerSearchResultScreen extends Screen {
         return true;
     }
 
-    private void drawPlayerAvatar(GuiGraphicsExtractor graphics, int x, int y) {
+    private void drawPlayerAvatar(GuiGraphics guiGraphics, int x, int y) {
         if (imageReady) {
             if (playerProfile.imageSaved == 1 || playerProfile.imageSaved == 2)
-                graphics.blit(RenderPipelines.GUI_TEXTURED, playerAvatarTexture, x - width / 32, y, 0, 0, width / 16, (int) (width / 6.666), width / 16, (int) (width / 6.666));
+                guiGraphics.blit(playerAvatarTexture, x - width / 32, y, 0, 0, width / 16, (int) (width / 6.666), width / 16, (int) (width / 6.666));
             else if (playerProfile.imageSaved < 6 && playerProfile.imageSaved > 2)
-                graphics.blit(RenderPipelines.GUI_TEXTURED, playerAvatarTexture, (int) (x - width / 22.5), y, 0, 0, (int) (width / 11.25), (int) (width / 6.666), (int) (width / 11.25), (int) (width / 6.666));
+                guiGraphics.blit(playerAvatarTexture, (int) (x - width / 22.5), y, 0, 0, (int) (width / 11.25), (int) (width / 6.666), (int) (width / 11.25), (int) (width / 6.666));
         } else if (playerProfile.imageSaved != 0) {
             loadPlayerAvatar();
         } else if (playerProfile.numberOfImageRequests == 6)
-            graphics.centeredText(font, Component.literal(playerProfile.name + "'s skin failed to load. Clear cache and retry"), x, y + 50, ColorControl.getColorMinecraftStandard("red"));
+            guiGraphics.drawCenteredString(font, Component.literal(playerProfile.name + "'s skin failed to load. Clear cache and retry"), x, y + 50, ColorControl.getColorMinecraftStandard("red"));
     }
 
     private void loadPlayerAvatar() {
