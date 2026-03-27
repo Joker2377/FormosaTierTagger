@@ -6,13 +6,8 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 
 public class Icons {
-    public static Identifier identifierMCTiers = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/pvptiers");
-    public static Identifier identifierPvPTiers = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/pvptiers");
-    public static final Identifier identifierSubtiers = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/subtiers");
-
-    public static Identifier identifierMCTiersTags = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/pvptiers-tags");
-    public static Identifier identifierPvPTiersTags = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/pvptiers-tags");
-    public static final Identifier identifierSubtiersTags = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/subtiers-tags");
+    public static Identifier identifierFormosa = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/pvptiers");
+    public static Identifier identifierFormosaTags = Identifier.fromNamespaceAndPath("minecraft", "gamemodes/pvptiers-tags");
 
     private static final FontDescription fontDescription = new FontDescription.Resource((Identifier.fromNamespaceAndPath("minecraft", "misc")));
 
